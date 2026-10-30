@@ -21,10 +21,26 @@
 
   <link rel="icon" type="image/png" href="favicon.png"/>
   <title>Kafa Sayımı</title>
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="manifest.json?v=2">
 </head>
-<body style="background-color: #0A1128;">
+<body style="background-color: #0A1128; margin: 0; padding: 0;">
+  <!-- Web & PWA İlk Yükleme Splash Screen (#0A1128 zemin ve ortalanmış ikon) -->
+  <div id="app-splash" style="position: fixed; inset: 0; background-color: #0A1128; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999999; transition: opacity 0.25s ease-out;">
+    <img src="icons/Icon-192.png" width="96" height="96" alt="Kafa Sayımı" style="border-radius: 20px; box-shadow: 0 4px 24px rgba(0,0,0,0.4);">
+  </div>
   <script>
+    function hideAppSplash() {
+      const splash = document.getElementById('app-splash');
+      if (splash && splash.style.opacity !== '0') {
+        splash.style.opacity = '0';
+        setTimeout(function() {
+          if (splash.parentNode) splash.parentNode.removeChild(splash);
+        }, 260);
+      }
+    }
+    window.addEventListener('flutter-first-frame', hideAppSplash);
+    setTimeout(hideAppSplash, 6000);
+
     // TXT Dosyası Dışa Aktarma / İndirme Yardımcısı
     window.downloadTextFile = function(filename, content) {
       const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
