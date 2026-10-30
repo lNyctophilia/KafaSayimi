@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href="$FLUTTER_BASE_HREF">
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Kafa Sayımı - Sayım Kağıdı OCR">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Kafa Sayımı">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="icon" type="image/png" href="favicon.png"/>
+  <title>Kafa Sayımı</title>
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script>
+    // ── Image preprocessing ──────────────────────────────────────────────────
+    // Converts the image to grayscale, boosts contrast, and upscales 2×.
+    // Better input → better OCR accuracy, especially for small printed text.
+    window.preprocessImage = function(dataUrl) {
+      return new Promise(function(resolve, reject) {
+        var img = new Image();
+        img.onload = function() {
+          var scale = 2; // upscale 2× to help Tesseract with small text
+          var canvas = document.createElement('canvas');
+          canvas.width  = img.width  * scale;
+          canvas.height = img.height * scale;
+          var ctx = canvas.getContext('2d');
+
+          // Draw upscaled
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+          var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          var d = imgData.data;
+          var contrast = 1.6; // increase contrast (>1 = more contrast)
+
+          for (var i = 0; i < d.length; i += 4) {
+            // Luminance-weighted grayscale
+            var gray = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+            // Contrast stretch around midpoint 128
+            var val = Math.round((gray - 128) * contrast + 128);
+            val = Math.max(0, Math.min(255, val));
+            d[i] = d[i+1] = d[i+2] = val;
+            // alpha unchanged
+          }
+
+          ctx.putImageData(imgData, 0, 0);
+          resolve(canvas.toDataURL('image/png')); // PNG = lossless, better for OCR
+        };
+        img.onerror = reject;
+        img.src = dataUrl;
+      });
+    };
+
+    // ── OCR ─────────────────────────────────────────────────────────────────
+    // Global OCR function called from Flutter via JS interop.
+    window.performOcr = async function(dataUrl, onProgress, onComplete, onError) {
+      try {
+        // Step 1: preprocess
+        if (onProgress) onProgress(0);
+        var processedUrl = await window.preprocessImage(dataUrl);
+
+        // Step 2: create Tesseract worker
+        var worker = await Tesseract.createWorker('tur+eng', 1, {
+          logger: function(m) {
+            if (m.status === 'recognizing text' && onProgress) {
+              onProgress(Math.round(m.progress * 100));
+            }
+          }
+        });
+
+        // PSM 6 = "Assume a single uniform block of text"
+        // Works well for structured A4 grid documents.
+        // NO character whitelist — whitelist hurts recognition of edge cases.
+        await worker.setParameters({
+          tessedit_pageseg_mode: '6',
+        });
+
+        var result = await worker.recognize(processedUrl);
+        await worker.terminate();
+
+        var data = {
+          text: result.data.text,
+          words: result.data.words.map(function(w) {
+            return {
+              text: w.text,
+              confidence: w.confidence,
+              bbox: { x0: w.bbox.x0, y0: w.bbox.y0, x1: w.bbox.x1, y1: w.bbox.y1 }
+            };
+          }),
+          lines: result.data.lines.map(function(l) {
+            return {
+              text: l.text,
+              confidence: l.confidence,
+              bbox: { x0: l.bbox.x0, y0: l.bbox.y0, x1: l.bbox.x1, y1: l.bbox.y1 },
+              words: l.words.map(function(w) {
+                return {
+                  text: w.text,
+                  confidence: w.confidence,
+                  bbox: { x0: w.bbox.x0, y0: w.bbox.y0, x1: w.bbox.x1, y1: w.bbox.y1 }
+                };
+              })
+            };
+          })
+        };
+
+        if (onComplete) onComplete(JSON.stringify(data));
+      } catch (err) {
+        if (onError) onError(err.toString());
+      }
+    };
+
+    window.isTesseractLoaded = function() {
+      return typeof Tesseract !== 'undefined';
+    };
+
+    // Helper: trigger file download
+    window.downloadTextFile = function(filename, content) {
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    };
+  </script>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>
