@@ -16,11 +16,15 @@ class BarcodeEntry {
   /// Yüzde olarak tam sayı eminlik skoru (0 - 100)
   int get confidencePercentage => confidence.clamp(0.0, 100.0).round();
 
-  /// %95 altı eminlik uyarısı (veya güvensiz işaretlenmişse)
-  bool get isUnder95 => confidence < 95.0 || !isQuantityConfident;
+  /// %92 altı eminlik uyarısı (%92'den düşükse sarı)
+  bool get isUnder92 => confidence < 92.0 || !isQuantityConfident;
 
-  /// %90 altı kritik kırmızı uyarı
-  bool get isUnder90 => confidence < 90.0 || (!isQuantityConfident && confidence < 95.0);
+  /// %87 altı kritik kırmızı uyarı (yalnızca 87'nin altındaysa kırmızı)
+  bool get isUnder87 => confidence < 87.0;
+
+  /// Geriye dönük uyumluluk aliasları
+  bool get isUnder95 => isUnder92;
+  bool get isUnder90 => isUnder87;
 
   BarcodeEntry copyWith({
     String? barcodeCode,

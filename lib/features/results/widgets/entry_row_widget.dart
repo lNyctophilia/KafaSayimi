@@ -69,7 +69,7 @@ class _EntryRowWidgetState extends State<EntryRowWidget> {
   }
 
   void _showConfidenceInfo(BuildContext context) {
-    final isUnder90 = widget.entry.isUnder90;
+    final isUnder87 = widget.entry.isUnder87;
     final pct = widget.entry.confidencePercentage;
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
@@ -78,8 +78,8 @@ class _EntryRowWidgetState extends State<EntryRowWidget> {
         content: Row(
           children: [
             Icon(
-              isUnder90 ? Icons.error_rounded : Icons.warning_rounded,
-              color: isUnder90 ? AppColors.danger : AppColors.warning,
+              isUnder87 ? Icons.error_rounded : Icons.warning_rounded,
+              color: isUnder87 ? AppColors.danger : AppColors.warning,
               size: 24,
             ),
             const SizedBox(width: 12),
@@ -89,16 +89,16 @@ class _EntryRowWidgetState extends State<EntryRowWidget> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    isUnder90 ? 'Kritik Eminlik: %$pct' : 'Düşük Eminlik: %$pct',
+                    isUnder87 ? 'Kritik Eminlik: %$pct' : 'Düşük Eminlik: %$pct',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: isUnder90 ? AppColors.danger : AppColors.warning,
+                      color: isUnder87 ? AppColors.danger : AppColors.warning,
                     ),
                   ),
                   Text(
-                    isUnder90
-                        ? 'Yapay zeka %90 altı eminlik tespit etti. Lütfen sayım kağıdındaki değeri doğrulayın.'
-                        : 'Okuma eminliği %95 altında. Lütfen kutucuktaki adeti kontrol edin.',
+                    isUnder87
+                        ? 'Yapay zeka %87 altı eminlik tespit etti. Lütfen sayım kağıdındaki değeri doğrulayın.'
+                        : 'Okuma eminliği %92 altında. Lütfen kutucuktaki adeti kontrol edin.',
                     style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                   ),
                 ],
@@ -117,31 +117,28 @@ class _EntryRowWidgetState extends State<EntryRowWidget> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isQtyEmpty = widget.entry.quantity.trim().isEmpty;
-    final isUnder95 = !isQtyEmpty && widget.entry.isUnder95;
-    final isUnder90 = !isQtyEmpty && widget.entry.isUnder90;
+    final isUnder92 = !isQtyEmpty && widget.entry.isUnder92;
+    final isUnder87 = !isQtyEmpty && widget.entry.isUnder87;
 
-    // Card border and background based on confidence:
-    // < 90%: Red critical alert
-    // < 95%: Amber warning alert
-    // Empty: Error outline
-    // >= 95%: Normal
+    // Card border and background:
+    // Sadece adet boş ise uyarı çerçevesi gösterilir.
+    // Şüpheli satırlarda kart çerçevesi sade bırakılır, uyarı sadece yandaki yüzde rozetinde gösterilir.
     final Color borderColor = isQtyEmpty
         ? colorScheme.error.withValues(alpha: 0.6)
-        : isUnder90
-            ? AppColors.danger
-            : isUnder95
-                ? AppColors.warning
-                : colorScheme.outlineVariant;
+        : colorScheme.outlineVariant;
 
-    final double borderWidth = (isQtyEmpty || isUnder90 || isUnder95) ? 1.6 : 1.0;
+    final double borderWidth = isQtyEmpty ? 1.6 : 1.0;
 
     final Color cardBgColor = isQtyEmpty
         ? colorScheme.errorContainer.withValues(alpha: 0.2)
-        : isUnder90
-            ? AppColors.danger.withValues(alpha: 0.14)
-            : isUnder95
-                ? AppColors.warning.withValues(alpha: 0.08)
-                : colorScheme.surface;
+        : colorScheme.surface;
+
+    // Soft, non-glaring badge colors:
+    // < 87%: Muted red
+    // 87% - 92%: Muted yellow/amber
+    const Color badgeRed = Color(0xFFE05368);
+    const Color badgeYellow = Color(0xFFE5A93C);
+    final Color badgeColor = isUnder87 ? badgeRed : badgeYellow;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
@@ -159,34 +156,20 @@ class _EntryRowWidgetState extends State<EntryRowWidget> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Row number pill
+            // Row number pill (clean, standard style)
             Container(
               width: 32,
               height: 32,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: isUnder90
-                    ? AppColors.danger.withValues(alpha: 0.25)
-                    : isUnder95
-                        ? AppColors.warning.withValues(alpha: 0.25)
-                        : colorScheme.primaryContainer,
+                color: colorScheme.primaryContainer,
                 shape: BoxShape.circle,
-                border: (isUnder90 || isUnder95)
-                    ? Border.all(
-                        color: isUnder90 ? AppColors.danger : AppColors.warning,
-                        width: 1.2,
-                      )
-                    : null,
               ),
               child: Text(
                 '${widget.index + 1}',
                 style: theme.textTheme.labelMedium?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: isUnder90
-                      ? AppColors.danger
-                      : isUnder95
-                          ? AppColors.warning
-                          : colorScheme.onPrimaryContainer,
+                  color: colorScheme.onPrimaryContainer,
                 ),
               ),
             ),
@@ -237,38 +220,14 @@ class _EntryRowWidgetState extends State<EntryRowWidget> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Adet',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: isQtyEmpty
-                              ? colorScheme.error
-                              : isUnder90
-                                  ? AppColors.danger
-                                  : isUnder95
-                                      ? AppColors.warning
-                                      : colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      if (isUnder90) ...[
-                        const SizedBox(width: 4),
-                        const Icon(
-                          Icons.error_outline_rounded,
-                          size: 14,
-                          color: AppColors.danger,
-                        ),
-                      ] else if (isUnder95) ...[
-                        const SizedBox(width: 4),
-                        const Icon(
-                          Icons.warning_amber_rounded,
-                          size: 14,
-                          color: AppColors.warning,
-                        ),
-                      ],
-                    ],
+                  Text(
+                    'Adet',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: isQtyEmpty
+                          ? colorScheme.error
+                          : colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   TextFormField(
@@ -281,11 +240,7 @@ class _EntryRowWidgetState extends State<EntryRowWidget> {
                       fontWeight: FontWeight.w900,
                       color: isQtyEmpty
                           ? colorScheme.error
-                          : isUnder90
-                              ? AppColors.danger
-                              : isUnder95
-                                  ? AppColors.warning
-                                  : colorScheme.primary,
+                          : colorScheme.primary,
                     ),
                     decoration: InputDecoration(
                       isDense: true,
@@ -306,57 +261,69 @@ class _EntryRowWidgetState extends State<EntryRowWidget> {
               ),
             ),
 
-            // Warning exclamation badge on the right if confidence < 95%
-            if (isUnder95) ...[
+            // Warning exclamation badge on the right if confidence < 92%
+            if (isUnder92) ...[
               const SizedBox(width: 6),
-              Tooltip(
-                message: isUnder90
-                    ? 'Kritik Uyarı: Eminlik %${widget.entry.confidencePercentage} (< %90). Lütfen kontrol edin!'
-                    : 'Uyarı: Eminlik %${widget.entry.confidencePercentage} (< %95). Lütfen kontrol edin.',
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () => _showConfidenceInfo(context),
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: isUnder90
-                            ? AppColors.danger.withValues(alpha: 0.18)
-                            : AppColors.warning.withValues(alpha: 0.18),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: isUnder90
-                              ? AppColors.danger.withValues(alpha: 0.9)
-                              : AppColors.warning.withValues(alpha: 0.9),
-                          width: 1.3,
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            isUnder90
-                                ? Icons.error_rounded
-                                : Icons.warning_rounded,
-                            size: 19,
-                            color: isUnder90 ? AppColors.danger : AppColors.warning,
-                          ),
-                          const SizedBox(height: 1),
-                          Text(
-                            '%${widget.entry.confidencePercentage}',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w900,
-                              color: isUnder90 ? AppColors.danger : AppColors.warning,
-                              letterSpacing: -0.2,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    ' ',
+                    style: theme.textTheme.labelSmall,
+                  ),
+                  const SizedBox(height: 2),
+                  SizedBox(
+                    height: 51,
+                    child: Tooltip(
+                      message: isUnder87
+                          ? 'Kritik Uyarı: Eminlik %${widget.entry.confidencePercentage} (< %87). Lütfen kontrol edin!'
+                          : 'Uyarı: Eminlik %${widget.entry.confidencePercentage} (< %92). Lütfen kontrol edin.',
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => _showConfidenceInfo(context),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            height: 51,
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: badgeColor.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: badgeColor.withValues(alpha: 0.65),
+                                width: 1.2,
+                              ),
+                            ),
+                            alignment: Alignment.center,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  isUnder87
+                                      ? Icons.error_outline_rounded
+                                      : Icons.warning_amber_rounded,
+                                  size: 18,
+                                  color: badgeColor,
+                                ),
+                                const SizedBox(height: 1),
+                                Text(
+                                  '%${widget.entry.confidencePercentage}',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w900,
+                                    color: badgeColor,
+                                    letterSpacing: -0.2,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ),
             ],
             const SizedBox(width: 4),

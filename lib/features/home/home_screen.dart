@@ -68,9 +68,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     try {
       final XFile? file = await _picker.pickImage(
         source: source,
-        maxWidth: 2048,
-        maxHeight: 2048,
-        imageQuality: 85,
+        maxWidth: 1280,
+        maxHeight: 1280,
+        imageQuality: 70,
       );
 
       if (file == null) {
@@ -78,21 +78,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         return;
       }
 
-      // Kamera ile çekilen fotoğrafı cihazın galerisine kaydet
-      if (source == ImageSource.camera) {
-        try {
-          await Gal.putImage(file.path);
-        } catch (e) {
-          debugPrint('Fotoğraf galeriye kaydedilirken hata: $e');
-        }
-      }
-
       notifier.setImageDataUrl(file.path);
       notifier.setStep(ProcessingStep.runningOcr);
+
+      // Galeri kayıt ve API çağrısını paralel başlat
+      final galFuture = source == ImageSource.camera
+          ? Gal.putImage(file.path).catchError((_) {})
+          : Future<void>.value();
 
       final result = await GeminiVisionService.analyzeImage(
         imagePath: file.path,
       );
+
+      // Galeri kaydının bitmesini bekle (genellikle API'den önce biter)
+      await galFuture;
       final entries = result.entries;
       if (mounted) {
         setState(() {

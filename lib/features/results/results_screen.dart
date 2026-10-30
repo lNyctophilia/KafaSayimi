@@ -33,7 +33,7 @@ class ResultsScreen extends ConsumerWidget {
             tooltip: 'Satır Ekle',
           ),
           Padding(
-            padding: const EdgeInsets.only(right: 4),
+            padding: const EdgeInsets.only(right: 8),
             child: IconButton(
               icon: const Icon(Icons.share_rounded),
               onPressed: state.entries.isEmpty
@@ -123,10 +123,10 @@ class _SummaryBanner extends StatelessWidget {
     final filled = entries.where((e) => e.quantity.trim().isNotEmpty).length;
     final empty = total - filled;
     final lowConfidenceCount = entries
-        .where((e) => e.quantity.trim().isNotEmpty && e.isUnder95)
+        .where((e) => e.quantity.trim().isNotEmpty && e.isUnder92)
         .length;
     final criticalCount = entries
-        .where((e) => e.quantity.trim().isNotEmpty && e.isUnder90)
+        .where((e) => e.quantity.trim().isNotEmpty && e.isUnder87)
         .length;
 
     return Container(

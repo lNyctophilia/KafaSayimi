@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/barcode_entry.dart';
@@ -37,6 +39,15 @@ class GeminiAnalysisResult {
 class GeminiVisionService {
   static const String _prefKey = 'gemini_api_key';
 
+  // ── In-memory cache ───────────────────────────────────────────────────────
+  static String? _cachedApiKey;
+  static SharedPreferences? _prefs;
+
+  static Future<SharedPreferences> _getPrefs() async {
+    _prefs ??= await SharedPreferences.getInstance();
+    return _prefs!;
+  }
+
   /// Active working models tested with user's key
   static const List<String> _models = [
     'gemini-3-flash-preview',
@@ -46,29 +57,33 @@ class GeminiVisionService {
 
   /// Get active API key (User custom key or default embedded key)
   static Future<String> getApiKey() async {
-    final prefs = await SharedPreferences.getInstance();
+    if (_cachedApiKey != null) return _cachedApiKey!;
+    final prefs = await _getPrefs();
     final customKey = prefs.getString(_prefKey);
     if (customKey != null && customKey.trim().isNotEmpty) {
-      return customKey.trim();
+      _cachedApiKey = customKey.trim();
+      return _cachedApiKey!;
     }
     return ApiConfig.defaultGeminiApiKey;
   }
 
   /// Save custom API key to SharedPreferences
   static Future<void> saveApiKey(String apiKey) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _getPrefs();
     await prefs.setString(_prefKey, apiKey.trim());
+    _cachedApiKey = apiKey.trim(); // update cache
   }
 
   /// Remove custom key and revert to embedded key
   static Future<void> clearApiKey() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _getPrefs();
     await prefs.remove(_prefKey);
+    _cachedApiKey = null; // invalidate cache
   }
 
   /// Check if user has saved a custom API key
   static Future<bool> hasCustomApiKey() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _getPrefs();
     final customKey = prefs.getString(_prefKey);
     return customKey != null && customKey.trim().isNotEmpty;
   }
@@ -147,7 +162,7 @@ class GeminiVisionService {
 
   /// Check how many requests remain today
   static Future<int> getRemainingRequests() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _getPrefs();
     final used = prefs.getInt(_todayUsageKey()) ?? 0;
     final remaining = ApiConfig.dailyRequestLimit - used;
     return remaining < 0 ? 0 : remaining;
@@ -186,7 +201,7 @@ class GeminiVisionService {
 
   /// Increment today's usage counter
   static Future<int> _recordUsage() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _getPrefs();
     final key = _todayUsageKey();
     final current = prefs.getInt(key) ?? 0;
     final updated = current + 1;
@@ -217,8 +232,9 @@ class GeminiVisionService {
       throw Exception('Görüntü dosyası bulunamadı: $imagePath');
     }
 
-    final bytes = await file.readAsBytes();
-    final base64Image = base64Encode(bytes);
+    // ── Görüntüyü sıkıştır (native compress) + base64'ü isolate'ta encode et ──
+    final Uint8List compressedBytes = await _compressImage(imagePath);
+    final String base64Image = await compute(_encodeBase64Isolate, compressedBytes);
 
     const prompt = '''
 Bu görselde bir sayım kağıdı var. 3 sütun halinde kutucuklar var.
@@ -231,9 +247,9 @@ GÖREV:
 2. "quantity" (adet) kısmında YALNIZCA RAKAM / SAYI olmalıdır! "SON", "Adet" gibi hiçbir harf veya kelimeyi YAZMA (örn: "9 SON" yazıyorsa YALNIZCA "9" yaz).
 3. Barkod kodunu "RR-XXXX/YYYY" formatında standartlaştır.
 4. "confidence": Okuma doğruluğu ve el yazısı netliği için 0-100 arasında bir eminlik skoru belirle (sayı olarak):
-   - El yazısı ve barkod çok net ve tereddütsüz ise: 96 - 100
-   - El yazısı biraz silik, tereddütlü veya rakamlar tam net değilse (%95 altı şüpheli): 90 - 94
-   - Çok silik, karalama yapılmış, 1/7, 0/6, 3/8 gibi tereddüt içeren çok şüpheli okumalarda (%90 altı): 70 - 89
+   - El yazısı ve barkod net ve tereddütsüz ise: 92 - 100
+   - El yazısı biraz silik, tereddütlü veya rakamlar tam net değilse (%92 altı sarı uyarı): 87 - 91
+   - Çok silik, karalama yapılmış, 1/7, 0/6, 3/8 gibi tereddüt içeren çok şüpheli okumalarda (%87 altı kırmızı uyarı): 60 - 86
 
 YALNIZCA geçerli bir JSON array döndür:
 [
@@ -276,7 +292,7 @@ YALNIZCA geçerli bir JSON array döndür:
               headers: {'Content-Type': 'application/json'},
               body: requestBody,
             )
-            .timeout(const Duration(seconds: 45));
+            .timeout(const Duration(seconds: 20));
 
         if (response.statusCode == 200) {
           int remainingAfter = await _recordUsage();
@@ -386,7 +402,7 @@ YALNIZCA geçerli bir JSON array döndür:
             id: (idCounter++).toString(),
             barcodeCode: barcode,
             quantity: quantity,
-            isQuantityConfident: confidence >= 95.0,
+            isQuantityConfident: confidence >= 92.0,
             confidence: confidence,
           ));
         }
@@ -395,4 +411,27 @@ YALNIZCA geçerli bir JSON array döndür:
 
     return entries;
   }
+
+  // ── Görüntü sıkıştırma yardımcıları ─────────────────────────────────────
+
+  /// Görüntüyü native seviyede sıkıştırır (max 1280px, Q:70).
+  /// Eğer compress başarısız olursa ham byte'ları döndürür.
+  static Future<Uint8List> _compressImage(String imagePath) async {
+    try {
+      final result = await FlutterImageCompress.compressWithFile(
+        imagePath,
+        minWidth: 1280,
+        minHeight: 1280,
+        quality: 70,
+        format: CompressFormat.jpeg,
+      );
+      if (result != null && result.isNotEmpty) return result;
+    } catch (_) {
+      // Compress başarısız olursa ham dosyayı oku
+    }
+    return File(imagePath).readAsBytes();
+  }
+
+  /// Base64 encoding'i isolate'ta yapar — UI thread'i bloklamaz.
+  static String _encodeBase64Isolate(Uint8List bytes) => base64Encode(bytes);
 }
