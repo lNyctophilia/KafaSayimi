@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/barcode_entry.dart';
 import '../models/scan_state.dart';
@@ -29,6 +30,10 @@ class ScanNotifier extends StateNotifier<ScanState> {
 
   void setImageDataUrl(String url) {
     state = state.copyWith(imageDataUrl: url);
+  }
+
+  void setImage({String? path, Uint8List? bytes}) {
+    state = state.copyWith(imageDataUrl: path, imageBytes: bytes);
   }
 
   void updateEntry(int index, BarcodeEntry updated) {

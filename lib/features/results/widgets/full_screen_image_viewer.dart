@@ -1,13 +1,16 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class FullScreenImageViewer extends StatefulWidget {
-  final String imagePath;
+  final String? imagePath;
+  final Uint8List? imageBytes;
   final String? heroTag;
 
   const FullScreenImageViewer({
     super.key,
-    required this.imagePath,
+    this.imagePath,
+    this.imageBytes,
     this.heroTag,
   });
 
@@ -88,16 +91,50 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
 
   @override
   Widget build(BuildContext context) {
-    Widget imageWidget = Image.file(
-      File(widget.imagePath),
-      fit: BoxFit.contain,
-      errorBuilder: (_, __, ___) => const Center(
+    Widget imageWidget;
+    if (widget.imageBytes != null) {
+      imageWidget = Image.memory(
+        widget.imageBytes!,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => const Center(
+          child: Text(
+            'Görüntü yüklenemedi',
+            style: TextStyle(color: Colors.white70),
+          ),
+        ),
+      );
+    } else if (widget.imagePath != null && widget.imagePath!.isNotEmpty) {
+      if (kIsWeb) {
+        imageWidget = Image.network(
+          widget.imagePath!,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => const Center(
+            child: Text(
+              'Görüntü yüklenemedi',
+              style: TextStyle(color: Colors.white70),
+            ),
+          ),
+        );
+      } else {
+        imageWidget = Image.file(
+          File(widget.imagePath!),
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => const Center(
+            child: Text(
+              'Görüntü yüklenemedi',
+              style: TextStyle(color: Colors.white70),
+            ),
+          ),
+        );
+      }
+    } else {
+      imageWidget = const Center(
         child: Text(
-          'Görüntü yüklenemedi',
+          'Görüntü bulunamadı',
           style: TextStyle(color: Colors.white70),
         ),
-      ),
-    );
+      );
+    }
 
     if (widget.heroTag != null) {
       imageWidget = Hero(

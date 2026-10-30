@@ -77,11 +77,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         return;
       }
 
-      notifier.setImageDataUrl(file.path);
+      final imageBytes = await file.readAsBytes();
+      notifier.setImage(path: file.path, bytes: imageBytes);
       notifier.setStep(ProcessingStep.runningOcr);
 
       final result = await GeminiVisionService.analyzeImage(
         imagePath: file.path,
+        imageBytes: imageBytes,
       );
 
       final entries = result.entries;

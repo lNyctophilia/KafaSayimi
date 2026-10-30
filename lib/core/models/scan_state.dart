@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'barcode_entry.dart';
 
 enum ProcessingStep {
@@ -15,6 +16,7 @@ class ScanState {
   final int ocrProgress; // 0-100
   final String? errorMessage;
   final String? imageDataUrl;
+  final Uint8List? imageBytes;
 
   const ScanState({
     this.entries = const [],
@@ -22,6 +24,7 @@ class ScanState {
     this.ocrProgress = 0,
     this.errorMessage,
     this.imageDataUrl,
+    this.imageBytes,
   });
 
   bool get isProcessing =>
@@ -50,6 +53,7 @@ class ScanState {
     int? ocrProgress,
     String? errorMessage,
     String? imageDataUrl,
+    Uint8List? imageBytes,
   }) {
     return ScanState(
       entries: entries ?? this.entries,
@@ -57,6 +61,7 @@ class ScanState {
       ocrProgress: ocrProgress ?? this.ocrProgress,
       errorMessage: errorMessage ?? this.errorMessage,
       imageDataUrl: imageDataUrl ?? this.imageDataUrl,
+      imageBytes: imageBytes ?? this.imageBytes,
     );
   }
 }

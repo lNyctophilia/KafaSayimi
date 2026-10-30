@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -49,8 +50,11 @@ class ResultsScreen extends ConsumerWidget {
           : Column(
               children: [
                 // Preview image (if available)
-                if (state.imageDataUrl != null)
-                  _ImagePreviewBanner(imagePath: state.imageDataUrl!),
+                if (state.imageBytes != null || state.imageDataUrl != null)
+                  _ImagePreviewBanner(
+                    imagePath: state.imageDataUrl,
+                    imageBytes: state.imageBytes,
+                  ),
 
                 // Summary banner
                 _SummaryBanner(entries: state.entries),
@@ -192,8 +196,9 @@ class _SummaryBanner extends StatelessWidget {
 }
 
 class _ImagePreviewBanner extends StatefulWidget {
-  final String imagePath;
-  const _ImagePreviewBanner({required this.imagePath});
+  final String? imagePath;
+  final Uint8List? imageBytes;
+  const _ImagePreviewBanner({this.imagePath, this.imageBytes});
 
   @override
   State<_ImagePreviewBanner> createState() => _ImagePreviewBannerState();
@@ -207,10 +212,39 @@ class _ImagePreviewBannerState extends State<_ImagePreviewBanner> {
       MaterialPageRoute(
         builder: (_) => FullScreenImageViewer(
           imagePath: widget.imagePath,
+          imageBytes: widget.imageBytes,
           heroTag: 'scanned_image_preview',
         ),
       ),
     );
+  }
+
+  Widget _buildPreviewImage() {
+    if (widget.imageBytes != null) {
+      return Image.memory(
+        widget.imageBytes!,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) =>
+            const Center(child: Text('Görüntü önizlemesi yok')),
+      );
+    } else if (widget.imagePath != null && widget.imagePath!.isNotEmpty) {
+      if (kIsWeb) {
+        return Image.network(
+          widget.imagePath!,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) =>
+              const Center(child: Text('Görüntü önizlemesi yok')),
+        );
+      } else {
+        return Image.file(
+          File(widget.imagePath!),
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) =>
+              const Center(child: Text('Görüntü önizlemesi yok')),
+        );
+      }
+    }
+    return const Center(child: Text('Görüntü önizlemesi yok'));
   }
 
   @override
@@ -262,12 +296,7 @@ class _ImagePreviewBannerState extends State<_ImagePreviewBanner> {
                   children: [
                     Hero(
                       tag: 'scanned_image_preview',
-                      child: Image.file(
-                        File(widget.imagePath),
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) =>
-                            const Center(child: Text('Görüntü önizlemesi yok')),
-                      ),
+                      child: _buildPreviewImage(),
                     ),
                     Positioned(
                       right: 12,

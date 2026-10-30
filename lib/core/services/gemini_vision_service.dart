@@ -210,7 +210,8 @@ class GeminiVisionService {
 
   /// Send image to Gemini Vision API with automatic model fallback
   static Future<GeminiAnalysisResult> analyzeImage({
-    required String imagePath,
+    String? imagePath,
+    Uint8List? imageBytes,
   }) async {
     final remainingBefore = await getRemainingRequests();
     if (remainingBefore <= 0) {
@@ -226,13 +227,21 @@ class GeminiVisionService {
         'Gemini API anahtarı girilmedi. Lütfen sağ üstteki ayarlar simgesinden API anahtarınızı girin.',
       );
     }
-    final file = File(imagePath);
-    if (!await file.exists()) {
-      throw Exception('Görüntü dosyası bulunamadı: $imagePath');
+
+    final Uint8List bytes;
+    if (imageBytes != null) {
+      bytes = imageBytes;
+    } else if (imagePath != null && !kIsWeb) {
+      final file = File(imagePath);
+      if (!await file.exists()) {
+        throw Exception('Görüntü dosyası bulunamadı: $imagePath');
+      }
+      bytes = await file.readAsBytes();
+    } else {
+      throw Exception('Görüntü verisi bulunamadı.');
     }
 
-    // ── Dosyayı oku, base64 encoding'i isolate'ta yap (UI donmaz) ──
-    final bytes = await File(imagePath).readAsBytes();
+    // ── Base64 encoding'i isolate'ta yap (UI donmaz) ──
     final String base64Image = await compute(_encodeBase64Isolate, bytes);
 
     const prompt = '''
