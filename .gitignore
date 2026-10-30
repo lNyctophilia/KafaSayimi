@@ -1,9 +1,16 @@
-# Miscellaneous
+# Miscellaneous & OS
 *.class
 *.log
 *.pyc
 *.swp
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
 .atom/
 .build/
 .buildlog/
@@ -12,35 +19,58 @@
 .swiftpm/
 migrate_working_dir/
 
-# IntelliJ related
+# IntelliJ & Android Studio
 *.iml
 *.ipr
 *.iws
 .idea/
+.gradle/
 
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
+# Visual Studio Code
+.vscode/
+
+# Flutter / Dart / Pub
 .dart_tool/
+.flutter-plugins
 .flutter-plugins-dependencies
+.packages
 .pub-cache/
 .pub/
 /build/
 /coverage/
+**/doc/api/
+**/ios/Flutter/.last_build_id
 
-# Symbolication related
+# Symbolication & Obfuscation
 app.*.symbols
-
-# Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
+# Android build outputs & local configs
 /android/app/debug
 /android/app/profile
 /android/app/release
+/android/.gradle
+/android/local.properties
+/android/app/.cxx
+/android/.cxx
+/android/captures
+android/gradlew
+android/gradlew.bat
 
-# API Keys & Secrets
-lib/core/config/api_config.dart
+# Keystores & Keys (Security)
+*.keystore
+*.jks
+key.properties
 *.env
+*.env.*
+secrets.json
+
+# Binaries & Bundles
 *.apk
+*.aab
+*.ap_
+*.dex
+*.ipa
+
+# Local test & deployment scripts
 telefona_yukle.bat
