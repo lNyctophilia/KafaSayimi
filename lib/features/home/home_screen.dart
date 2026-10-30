@@ -8,6 +8,8 @@ import '../../core/models/scan_state.dart';
 import '../../core/providers/scan_provider.dart';
 import '../../core/services/gemini_vision_service.dart';
 import '../../core/config/api_config.dart';
+import '../../core/config/app_version.dart';
+import '../../core/services/app_update_service.dart';
 import '../../core/theme/app_colors.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -455,6 +457,41 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                   ],
                 ],
+                const SizedBox(height: 24),
+                Center(
+                  child: Tooltip(
+                    message: 'Basılı tutarak önbelleği temizleyip yenileyin',
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onLongPress: () async {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Önbellek temizleniyor ve uygulama sıfırdan başlatılıyor...',
+                            ),
+                            behavior: SnackBarBehavior.floating,
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                        await Future.delayed(const Duration(milliseconds: 600));
+                        await AppUpdateService.forceHardReload();
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        child: Text(
+                          AppVersion.current,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.textSecondary.withValues(alpha: 0.6),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

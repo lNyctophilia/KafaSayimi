@@ -74,3 +74,7 @@ secrets.json
 
 # Local test & deployment scripts
 telefona_yukle.bat
+yapılcaklar.md
+deploy.web.bat
+deploy_web.bat
+deploy_web.ps1

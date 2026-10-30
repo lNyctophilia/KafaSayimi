@@ -8,6 +8,11 @@
   <meta name="description" content="Kafa Sayımı - Yapay Zeka Destekli Sayım Kağıdı OCR">
   <meta name="theme-color" content="#0F172A">
 
+  <!-- Tarayıcının index.html dosyasını önbelleğe alıp eski sürümü göstermesini engeller -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
   <!-- iOS PWA Meta Tags -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -20,7 +25,7 @@
 </head>
 <body style="background-color: #0F172A;">
   <script>
-    // Helper: trigger text file download
+    // TXT Dosyası Dışa Aktarma / İndirme Yardımcısı
     window.downloadTextFile = function(filename, content) {
       const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
@@ -32,7 +37,107 @@
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     };
+
+    // ── Hard Cache Clear & Otomatik Güncelleme Motoru ──
+    const KS_STORAGE_KEY = 'kafa_sayimi_active_version';
+    const KS_RELOAD_GUARD = 'kafa_sayimi_reload_ts';
+
+    // Önbelleği (CacheStorage ve ServiceWorker) tamamen sıfırlayan çekirdek fonksiyon
+    // DİKKAT: Kullanıcının Gemini API anahtarı localStorage'da saklanır, bu yüzden
+    // localStorage SİLİNMEZ, sadece tarayıcı web varlıkları (JS, WASM, CSS) silinir.
+    window.performHardCacheClear = async function() {
+      try {
+        // 1. Tüm CacheStorage depolarını temizle (main.dart.js, canvaskit, fontlar, vb.)
+        if ('caches' in window) {
+          const cacheKeys = await caches.keys();
+          await Promise.all(cacheKeys.map(function(k) { return caches.delete(k); }));
+          console.log('[KafaSayimi] CacheStorage tamamen temizlendi:', cacheKeys);
+        }
+      } catch (e) {
+        console.warn('[KafaSayimi] CacheStorage temizleme hatası:', e);
+      }
+
+      try {
+        // 2. Varsa arka plandaki tüm eski ServiceWorker kayıtlarını sil
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map(function(r) { return r.unregister(); }));
+          console.log('[KafaSayimi] ServiceWorker kayıtları kaldırıldı.');
+        }
+      } catch (e) {
+        console.warn('[KafaSayimi] ServiceWorker kaldırma hatası:', e);
+      }
+    };
+
+    // Dart (Flutter) veya JS tarafından çağrılabilen zorunlu yenileme metodu
+    window.hardClearAndReload = async function(newVersion) {
+      try {
+        if (newVersion) {
+          localStorage.setItem(KS_STORAGE_KEY, newVersion);
+        }
+        localStorage.setItem(KS_RELOAD_GUARD, Date.now().toString());
+        await window.performHardCacheClear();
+      } catch (_) {}
+
+      // Tarayıcıyı önbelleksiz taze yüklemeye zorla
+      const base = window.location.origin + window.location.pathname;
+      window.location.replace(base + '?_nocache=' + Date.now());
+    };
+
+    // Uygulama ilk açıldığında otomatik güncelleme kontrolü ve sessiz hard-cache clear
+    (async function initAutoUpdate() {
+      function startFlutter(vTag) {
+        const script = document.createElement('script');
+        script.src = 'flutter_bootstrap.js?v=' + encodeURIComponent(vTag || Date.now());
+        script.async = true;
+        document.body.appendChild(script);
+      }
+
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(function() { controller.abort(); }, 2500);
+
+        const res = await fetch('version.json?_t=' + Date.now(), {
+          cache: 'no-store',
+          signal: controller.signal,
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        });
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+          const data = await res.json();
+          const etag = res.headers.get('etag') || res.headers.get('last-modified') || '';
+          const remoteVersion = ((data.version || '1.0.0') + '+' + (data.build_number || '1') + '_' + etag).replace(/["\s]/g, '');
+
+          const localVersion = localStorage.getItem(KS_STORAGE_KEY);
+          const lastReload = parseInt(localStorage.getItem(KS_RELOAD_GUARD) || '0', 10);
+          const now = Date.now();
+
+          // Eğer cihazdaki sürüm ile sunucudaki sürüm farklıysa ve son 6 saniyede yenilenmediyse:
+          if (localVersion && localVersion !== remoteVersion && (now - lastReload > 6000)) {
+            console.log('[KafaSayimi] Yeni güncelleme bulundu (' + localVersion + ' -> ' + remoteVersion + '). Önbellek temizlenip uygulama baştan kuruluyor...');
+            localStorage.setItem(KS_STORAGE_KEY, remoteVersion);
+            localStorage.setItem(KS_RELOAD_GUARD, now.toString());
+            await window.performHardCacheClear();
+            const base = window.location.origin + window.location.pathname;
+            window.location.replace(base + '?_nocache=' + now);
+            return; // Eski kodun açılmasını durdur
+          }
+
+          localStorage.setItem(KS_STORAGE_KEY, remoteVersion);
+          startFlutter(remoteVersion);
+          return;
+        }
+      } catch (err) {
+        console.warn('[KafaSayimi] Sürüm kontrolü atlandı veya çevrimdışı:', err);
+      }
+
+      startFlutter(localStorage.getItem(KS_STORAGE_KEY) || Date.now().toString());
+    })();
   </script>
-  <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
