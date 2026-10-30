@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:gal/gal.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -68,9 +67,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     try {
       final XFile? file = await _picker.pickImage(
         source: source,
-        maxWidth: 1280,
-        maxHeight: 1280,
-        imageQuality: 70,
+        maxWidth: 2048,
+        maxHeight: 2048,
+        imageQuality: 85,
       );
 
       if (file == null) {
@@ -81,17 +80,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       notifier.setImageDataUrl(file.path);
       notifier.setStep(ProcessingStep.runningOcr);
 
-      // Galeri kayıt ve API çağrısını paralel başlat
-      final galFuture = source == ImageSource.camera
-          ? Gal.putImage(file.path).catchError((_) {})
-          : Future<void>.value();
-
       final result = await GeminiVisionService.analyzeImage(
         imagePath: file.path,
       );
 
-      // Galeri kaydının bitmesini bekle (genellikle API'den önce biter)
-      await galFuture;
       final entries = result.entries;
       if (mounted) {
         setState(() {

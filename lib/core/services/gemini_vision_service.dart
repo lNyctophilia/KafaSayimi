@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/barcode_entry.dart';
@@ -232,9 +231,9 @@ class GeminiVisionService {
       throw Exception('Görüntü dosyası bulunamadı: $imagePath');
     }
 
-    // ── Görüntüyü sıkıştır (native compress) + base64'ü isolate'ta encode et ──
-    final Uint8List compressedBytes = await _compressImage(imagePath);
-    final String base64Image = await compute(_encodeBase64Isolate, compressedBytes);
+    // ── Dosyayı oku, base64 encoding'i isolate'ta yap (UI donmaz) ──
+    final bytes = await File(imagePath).readAsBytes();
+    final String base64Image = await compute(_encodeBase64Isolate, bytes);
 
     const prompt = '''
 Bu görselde bir sayım kağıdı var. 3 sütun halinde kutucuklar var.
@@ -412,25 +411,7 @@ YALNIZCA geçerli bir JSON array döndür:
     return entries;
   }
 
-  // ── Görüntü sıkıştırma yardımcıları ─────────────────────────────────────
-
-  /// Görüntüyü native seviyede sıkıştırır (max 1280px, Q:70).
-  /// Eğer compress başarısız olursa ham byte'ları döndürür.
-  static Future<Uint8List> _compressImage(String imagePath) async {
-    try {
-      final result = await FlutterImageCompress.compressWithFile(
-        imagePath,
-        minWidth: 1280,
-        minHeight: 1280,
-        quality: 70,
-        format: CompressFormat.jpeg,
-      );
-      if (result != null && result.isNotEmpty) return result;
-    } catch (_) {
-      // Compress başarısız olursa ham dosyayı oku
-    }
-    return File(imagePath).readAsBytes();
-  }
+  // ── Yardımcı fonksiyon ─────────────────────────────────────────────────────
 
   /// Base64 encoding'i isolate'ta yapar — UI thread'i bloklamaz.
   static String _encodeBase64Isolate(Uint8List bytes) => base64Encode(bytes);
