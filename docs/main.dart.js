@@ -93938,7 +93938,7 @@ B.b.G(s,A.b([B.cN,new A.Y2(r,new A.ax2(q),p)],l))}if(h===B.Ar&&o.a.length!==0)B.
 B.b.G(j,s)}j.push(B.iY)
 l=A.bB(8)
 i=i.Q
-j.push(A.fP(A.aqH(A.CE(!1,l,!0,new A.c8(B.kx,A.c0("versiyon (31.10.2026-02.09)",p,p,p,i==null?p:i.K6(B.b7.ia(0.6),12),p,p),p),p,!0,p,p,p,p,p,new A.ax4(a),p,p,p,p),"Bas\u0131l\u0131 tutarak \xf6nbelle\u011fi temizleyip yenileyin"),p,p))
+j.push(A.fP(A.aqH(A.CE(!1,l,!0,new A.c8(B.kx,A.c0("versiyon (31.10.2026-02.20)",p,p,p,i==null?p:i.K6(B.b7.ia(0.6),12),p,p),p),p,!0,p,p,p,p,p,new A.ax4(a),p,p,p,p),"Bas\u0131l\u0131 tutarak \xf6nbelle\u011fi temizleyip yenileyin"),p,p))
 return A.Th(k,p,A.fP(new A.fd(B.Ef,A.aHU(A.e3(j,B.D,B.dg,B.G),B.p5,p),p),p,p))}}
 A.awW.prototype={
 $0(){this.a.x=this.b},
