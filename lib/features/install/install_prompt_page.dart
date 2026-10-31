@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 
 class InstallPromptPage extends StatelessWidget {
-  final VoidCallback? onContinue;
-
-  const InstallPromptPage({super.key, this.onContinue});
+  const InstallPromptPage({super.key});
 
   Widget _buildPlatformSection({
     required IconData icon,
@@ -151,22 +149,6 @@ class InstallPromptPage extends StatelessWidget {
                         '✅ Artık ana ekranınızda uygulama ikonu görünecek!',
                       ],
                     ),
-                    if (onContinue != null) ...[
-                      const SizedBox(height: 24),
-                      Center(
-                        child: TextButton(
-                          onPressed: onContinue,
-                          child: const Text(
-                            'Tarayıcıda devam et',
-                            style: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 14,
-                              decoration: TextDecoration.underline,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ),

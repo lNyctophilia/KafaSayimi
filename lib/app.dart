@@ -33,33 +33,20 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 });
 
-class KafaSayimiApp extends ConsumerStatefulWidget {
+class KafaSayimiApp extends ConsumerWidget {
   const KafaSayimiApp({super.key});
 
   @override
-  ConsumerState<KafaSayimiApp> createState() => _KafaSayimiAppState();
-}
-
-class _KafaSayimiAppState extends ConsumerState<KafaSayimiApp> {
-  bool _dismissedInstallPrompt = false;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isMobileWeb = kIsWeb && isMobileBrowser();
-    if (isMobileWeb && !isPWA() && !_dismissedInstallPrompt) {
+    if (isMobileWeb && !isPWA()) {
       return MaterialApp(
         title: 'Kafa Sayımı',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.darkTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.dark,
-        home: InstallPromptPage(
-          onContinue: () {
-            setState(() {
-              _dismissedInstallPrompt = true;
-            });
-          },
-        ),
+        home: const InstallPromptPage(),
       );
     }
 

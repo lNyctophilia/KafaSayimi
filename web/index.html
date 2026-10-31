@@ -21,7 +21,7 @@
 
   <link rel="icon" type="image/png" href="favicon.png"/>
   <title>Kafa Sayımı</title>
-  <link rel="manifest" href="manifest.json?v=3">
+  <link rel="manifest" href="manifest.json?v=4">
 </head>
 <body style="background-color: #0A1128; margin: 0; padding: 0;">
   <script>
@@ -58,11 +58,16 @@
       }
 
       try {
-        // 2. Varsa arka plandaki tüm eski ServiceWorker kayıtlarını sil
+        // 2. Varsa sadece bu uygulamaya ait ServiceWorker kayıtlarını sil (diğer PWA'ları koru)
         if ('serviceWorker' in navigator) {
           const registrations = await navigator.serviceWorker.getRegistrations();
-          await Promise.all(registrations.map(function(r) { return r.unregister(); }));
-          console.log('[KafaSayimi] ServiceWorker kayıtları kaldırıldı.');
+          await Promise.all(registrations.map(function(r) {
+            if (r.scope && r.scope.includes('/KafaSayimi/')) {
+              return r.unregister();
+            }
+            return Promise.resolve();
+          }));
+          console.log('[KafaSayimi] KafaSayimi ServiceWorker kayıtları kaldırıldı.');
         }
       } catch (e) {
         console.warn('[KafaSayimi] ServiceWorker kaldırma hatası:', e);

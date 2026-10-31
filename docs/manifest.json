@@ -1,7 +1,9 @@
 {
+    "id": "/KafaSayimi/",
+    "scope": "/KafaSayimi/",
+    "start_url": "/KafaSayimi/",
     "name": "Kafa Sayımı",
     "short_name": "Kafa Sayımı",
-    "start_url": ".",
     "display": "standalone",
     "background_color": "#0A1128",
     "theme_color": "#0A1128",
