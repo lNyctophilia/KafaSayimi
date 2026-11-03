@@ -41,7 +41,11 @@ class BarcodeEntry {
     );
   }
 
-  String toOutputLine() => '$barcodeCode, $quantity';
+  String toOutputLine() {
+    final cleanCode = barcodeCode.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    final cleanQty = quantity.replaceAll(RegExp(r'[^0-9]'), '');
+    return '$cleanCode,$cleanQty,';
+  }
 
   @override
   String toString() =>

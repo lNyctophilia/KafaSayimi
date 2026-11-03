@@ -69,7 +69,10 @@ class ScanNotifier extends StateNotifier<ScanState> {
   }
 
   String exportToText() {
-    return state.entries.map((e) => e.toOutputLine()).join('\n');
+    final validEntries = state.entries.where(
+      (e) => e.barcodeCode.trim().isNotEmpty || e.quantity.trim().isNotEmpty,
+    );
+    return validEntries.map((e) => e.toOutputLine()).join('\n');
   }
 }
 
