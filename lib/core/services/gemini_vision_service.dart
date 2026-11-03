@@ -254,10 +254,17 @@ GÖREV:
 1. Yalnızca el yazısı ile adet girilmiş olan hücreleri sırasıyla listele. Boş hücreleri ALMA.
 2. "quantity" (adet) kısmında YALNIZCA RAKAM / SAYI olmalıdır! "SON", "Adet" gibi hiçbir harf veya kelimeyi YAZMA (örn: "9 SON" yazıyorsa YALNIZCA "9" yaz).
 3. Barkod kodunu "RR-XXXX/YYYY" formatında standartlaştır.
-4. "confidence": Okuma doğruluğu ve el yazısı netliği için 0-100 arasında bir eminlik skoru belirle (sayı olarak):
+4. ÜSTÜ ÇİZİLİ / KARALANMIŞ ADETLER (ÇOK ÖNEMLİ):
+   - Bazen el yazısı adetlerin üzeri çizilmiş, karalanmış veya iptal edilmiş olabilir.
+   - Üstü çizili veya karalanmış sayıları kesin doğru bir adetmiş gibi okumaya veya tahmin etmeye ÇALIŞMA!
+   - Eğer sayının üstü çizilip yanına/üstüne YENİ ve net bir sayı yazılmışsa, yalnızca o yeni sayıyı adet olarak al.
+   - Eğer kutucuktaki sayının üzeri çizilmiş/karalanmışsa ve yanında yeni bir sayı yoksa (veya karalama nedeniyle ne yazdığı tereddütlüyse):
+     * Sayıyı kesin gibi kabul edip okumaya zorlama.
+     * Bu hücre için "confidence" (eminlik skoru) değerini MUTLAKA %87'nin altında (60 - 75 arasında) DÜŞÜK ver ki sistem bu satırda kullanıcıya doğrudan kırmızı uyarı göstersin!
+5. "confidence": Okuma doğruluğu ve el yazısı netliği için 0-100 arasında bir eminlik skoru belirle (sayı olarak):
    - El yazısı ve barkod net ve tereddütsüz ise: 92 - 100
-   - El yazısı biraz silik, tereddütlü veya rakamlar tam net değilse (%92 altı sarı uyarı): 87 - 91
-   - Çok silik, karalama yapılmış, 1/7, 0/6, 3/8 gibi tereddüt içeren çok şüpheli okumalarda (%87 altı kırmızı uyarı): 60 - 86
+   - El yazısı biraz silik, rakamlar okunamayacak kadar iç içe girmiş, tereddütlü veya rakamlar tam net değilse (%92 altı sarı uyarı): 87 - 91
+   - Üstü çizili, karalanmış, üzeri karalamayla kapatılmış, çok silik veya 1/7, 0/6, 3/8 gibi tereddüt içeren tüm şüpheli okumalarda (%87 altı KIRMIZI UYARI): 60 - 75 (Kesinlikle 87'nin altında olmalı!)
 
 YALNIZCA geçerli bir JSON array döndür:
 [
