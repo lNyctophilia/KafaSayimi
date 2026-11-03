@@ -263,7 +263,7 @@ GÖREV:
      * Bu hücre için "confidence" (eminlik skoru) değerini MUTLAKA %87'nin altında (60 - 75 arasında) DÜŞÜK ver ki sistem bu satırda kullanıcıya doğrudan kırmızı uyarı göstersin!
 5. "confidence": Okuma doğruluğu ve el yazısı netliği için 0-100 arasında bir eminlik skoru belirle (sayı olarak):
    - El yazısı ve barkod net ve tereddütsüz ise: 92 - 100
-   - El yazısı biraz silik, rakamlar okunamayacak kadar iç içe girmiş, tereddütlü veya rakamlar tam net değilse (%92 altı sarı uyarı): 87 - 91
+   - El yazısı biraz silik, tereddütlü veya rakamlar tam net değilse (%92 altı sarı uyarı): 87 - 91
    - Üstü çizili, karalanmış, üzeri karalamayla kapatılmış, çok silik veya 1/7, 0/6, 3/8 gibi tereddüt içeren tüm şüpheli okumalarda (%87 altı KIRMIZI UYARI): 60 - 75 (Kesinlikle 87'nin altında olmalı!)
 
 YALNIZCA geçerli bir JSON array döndür:

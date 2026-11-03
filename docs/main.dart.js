@@ -27815,7 +27815,7 @@ s=5
 return A.z(A.aSy(A.b97(),b3,null,t.H3,a2),$async$ro)
 case 5:a3=b6
 a4=t.K
-n=B.ba.a_b(A.aw(["contents",A.b([A.aw(["parts",A.b([A.aw(["text",'Bu g\xf6rselde bir say\u0131m ka\u011f\u0131d\u0131 var. 3 s\xfctun halinde kutucuklar var.\nHer kutucukta:\n- Barkod ve alt\u0131nda bas\u0131lm\u0131\u015f kodu (\xf6rn: RR-0133 / 2710)\n- "Adet:" etiketi ve yan\u0131nda/alt\u0131nda el yaz\u0131s\u0131 say\u0131lar (\xf6rn: 34, 24, 15, 42, 53, 40, 9 SON vs.)\n\nG\xd6REV:\n1. Yaln\u0131zca el yaz\u0131s\u0131 ile adet girilmi\u015f olan h\xfccreleri s\u0131ras\u0131yla listele. Bo\u015f h\xfccreleri ALMA.\n2. "quantity" (adet) k\u0131sm\u0131nda YALNIZCA RAKAM / SAYI olmal\u0131d\u0131r! "SON", "Adet" gibi hi\xe7bir harf veya kelimeyi YAZMA (\xf6rn: "9 SON" yaz\u0131yorsa YALNIZCA "9" yaz).\n3. Barkod kodunu "RR-XXXX/YYYY" format\u0131nda standartla\u015ft\u0131r.\n4. \xdcST\xdc \xc7\u0130Z\u0130L\u0130 / KARALANMI\u015e ADETLER (\xc7OK \xd6NEML\u0130):\n   - Bazen el yaz\u0131s\u0131 adetlerin \xfczeri \xe7izilmi\u015f, karalanm\u0131\u015f veya iptal edilmi\u015f olabilir.\n   - \xdcst\xfc \xe7izili veya karalanm\u0131\u015f say\u0131lar\u0131 kesin do\u011fru bir adetmi\u015f gibi okumaya veya tahmin etmeye \xc7ALI\u015eMA!\n   - E\u011fer say\u0131n\u0131n \xfcst\xfc \xe7izilip yan\u0131na/\xfcst\xfcne YEN\u0130 ve net bir say\u0131 yaz\u0131lm\u0131\u015fsa, yaln\u0131zca o yeni say\u0131y\u0131 adet olarak al.\n   - E\u011fer kutucuktaki say\u0131n\u0131n \xfczeri \xe7izilmi\u015f/karalanm\u0131\u015fsa ve yan\u0131nda yeni bir say\u0131 yoksa (veya karalama nedeniyle ne yazd\u0131\u011f\u0131 teredd\xfctl\xfcyse):\n     * Say\u0131y\u0131 kesin gibi kabul edip okumaya zorlama.\n     * Bu h\xfccre i\xe7in "confidence" (eminlik skoru) de\u011ferini MUTLAKA %87\'nin alt\u0131nda (60 - 75 aras\u0131nda) D\xdc\u015e\xdcK ver ki sistem bu sat\u0131rda kullan\u0131c\u0131ya do\u011frudan k\u0131rm\u0131z\u0131 uyar\u0131 g\xf6stersin!\n5. "confidence": Okuma do\u011frulu\u011fu ve el yaz\u0131s\u0131 netli\u011fi i\xe7in 0-100 aras\u0131nda bir eminlik skoru belirle (say\u0131 olarak):\n   - El yaz\u0131s\u0131 ve barkod net ve teredd\xfcts\xfcz ise: 92 - 100\n   - El yaz\u0131s\u0131 biraz silik, rakamlar okunamayacak kadar i\xe7 i\xe7e girmi\u015f, teredd\xfctl\xfc veya rakamlar tam net de\u011filse (%92 alt\u0131 sar\u0131 uyar\u0131): 87 - 91\n   - \xdcst\xfc \xe7izili, karalanm\u0131\u015f, \xfczeri karalamayla kapat\u0131lm\u0131\u015f, \xe7ok silik veya 1/7, 0/6, 3/8 gibi teredd\xfct i\xe7eren t\xfcm \u015f\xfcpheli okumalarda (%87 alt\u0131 KIRMIZI UYARI): 60 - 75 (Kesinlikle 87\'nin alt\u0131nda olmal\u0131!)\n\nYALNIZCA ge\xe7erli bir JSON array d\xf6nd\xfcr:\n[\n  {"barcode": "RR-0133/2710", "quantity": "34", "confidence": 98}\n]\n'],a2,a2),A.aw(["inline_data",A.aw(["mime_type","image/jpeg","data",a3],a2,a2)],a2,t.GU)],t.Mq)],a2,t.JD)],t.lU),"generationConfig",A.aw(["temperature",0.1,"response_mime_type","application/json"],a2,a4)],a2,a4),null)
+n=B.ba.a_b(A.aw(["contents",A.b([A.aw(["parts",A.b([A.aw(["text",'Bu g\xf6rselde bir say\u0131m ka\u011f\u0131d\u0131 var. 3 s\xfctun halinde kutucuklar var.\nHer kutucukta:\n- Barkod ve alt\u0131nda bas\u0131lm\u0131\u015f kodu (\xf6rn: RR-0133 / 2710)\n- "Adet:" etiketi ve yan\u0131nda/alt\u0131nda el yaz\u0131s\u0131 say\u0131lar (\xf6rn: 34, 24, 15, 42, 53, 40, 9 SON vs.)\n\nG\xd6REV:\n1. Yaln\u0131zca el yaz\u0131s\u0131 ile adet girilmi\u015f olan h\xfccreleri s\u0131ras\u0131yla listele. Bo\u015f h\xfccreleri ALMA.\n2. "quantity" (adet) k\u0131sm\u0131nda YALNIZCA RAKAM / SAYI olmal\u0131d\u0131r! "SON", "Adet" gibi hi\xe7bir harf veya kelimeyi YAZMA (\xf6rn: "9 SON" yaz\u0131yorsa YALNIZCA "9" yaz).\n3. Barkod kodunu "RR-XXXX/YYYY" format\u0131nda standartla\u015ft\u0131r.\n4. \xdcST\xdc \xc7\u0130Z\u0130L\u0130 / KARALANMI\u015e ADETLER (\xc7OK \xd6NEML\u0130):\n   - Bazen el yaz\u0131s\u0131 adetlerin \xfczeri \xe7izilmi\u015f, karalanm\u0131\u015f veya iptal edilmi\u015f olabilir.\n   - \xdcst\xfc \xe7izili veya karalanm\u0131\u015f say\u0131lar\u0131 kesin do\u011fru bir adetmi\u015f gibi okumaya veya tahmin etmeye \xc7ALI\u015eMA!\n   - E\u011fer say\u0131n\u0131n \xfcst\xfc \xe7izilip yan\u0131na/\xfcst\xfcne YEN\u0130 ve net bir say\u0131 yaz\u0131lm\u0131\u015fsa, yaln\u0131zca o yeni say\u0131y\u0131 adet olarak al.\n   - E\u011fer kutucuktaki say\u0131n\u0131n \xfczeri \xe7izilmi\u015f/karalanm\u0131\u015fsa ve yan\u0131nda yeni bir say\u0131 yoksa (veya karalama nedeniyle ne yazd\u0131\u011f\u0131 teredd\xfctl\xfcyse):\n     * Say\u0131y\u0131 kesin gibi kabul edip okumaya zorlama.\n     * Bu h\xfccre i\xe7in "confidence" (eminlik skoru) de\u011ferini MUTLAKA %87\'nin alt\u0131nda (60 - 75 aras\u0131nda) D\xdc\u015e\xdcK ver ki sistem bu sat\u0131rda kullan\u0131c\u0131ya do\u011frudan k\u0131rm\u0131z\u0131 uyar\u0131 g\xf6stersin!\n5. "confidence": Okuma do\u011frulu\u011fu ve el yaz\u0131s\u0131 netli\u011fi i\xe7in 0-100 aras\u0131nda bir eminlik skoru belirle (say\u0131 olarak):\n   - El yaz\u0131s\u0131 ve barkod net ve teredd\xfcts\xfcz ise: 92 - 100\n   - El yaz\u0131s\u0131 biraz silik, teredd\xfctl\xfc veya rakamlar tam net de\u011filse (%92 alt\u0131 sar\u0131 uyar\u0131): 87 - 91\n   - \xdcst\xfc \xe7izili, karalanm\u0131\u015f, \xfczeri karalamayla kapat\u0131lm\u0131\u015f, \xe7ok silik veya 1/7, 0/6, 3/8 gibi teredd\xfct i\xe7eren t\xfcm \u015f\xfcpheli okumalarda (%87 alt\u0131 KIRMIZI UYARI): 60 - 75 (Kesinlikle 87\'nin alt\u0131nda olmal\u0131!)\n\nYALNIZCA ge\xe7erli bir JSON array d\xf6nd\xfcr:\n[\n  {"barcode": "RR-0133/2710", "quantity": "34", "confidence": 98}\n]\n'],a2,a2),A.aw(["inline_data",A.aw(["mime_type","image/jpeg","data",a3],a2,a2)],a2,t.GU)],t.Mq)],a2,t.JD)],t.lU),"generationConfig",A.aw(["temperature",0.1,"response_mime_type","application/json"],a2,a4)],a2,a4),null)
 m=null
 a4=t.kc,a5=t.nA,a6=t.a,a7=t._t,a8=0
 case 6:if(!(a8<3)){s=8
@@ -31004,7 +31004,7 @@ a0=J.fe(l,"version_tag")
 j=a0==null?null:B.c.bG(J.dO(a0))
 s=j!=null&&j.length!==0?10:11
 break
-case 10:s=j!=="versiyon (03.11.2026-07.06)"?12:13
+case 10:s=j!=="versiyon (03.11.2026-16.44)"?12:13
 break
 case 12:s=14
 return A.z(A.FV(),$async$lI)
@@ -31047,7 +31047,7 @@ if(d.b===200){a0=d
 c=A.b0("current\\s*=\\s*[']([^']+)[']",!0,!1,!1).fh(A.a5f(A.a51(a0.e)).dZ(a0.w))
 if(c!=null){a0=c.b[1]
 b=a0==null?null:B.c.bG(a0)
-if(b!=null&&b.length!==0&&b!=="versiyon (03.11.2026-07.06)"){q=new A.nk(B.fS,b,null)
+if(b!=null&&b.length!==0&&b!=="versiyon (03.11.2026-16.44)"){q=new A.nk(B.fS,b,null)
 s=1
 break}}}p=4
 s=26
@@ -95157,7 +95157,7 @@ i=A.bo(8)
 h=n.c
 h.toString
 h=A.X(h).ok.Q
-i=A.arl(A.CU(!1,i,!0,new A.bR(B.kB,A.bL("versiyon (03.11.2026-07.06)",m,m,m,h==null?m:h.Kc(B.aR.ha(0.6),12),m,m),m),m,!0,m,m,m,m,m,new A.ax4(n),m,m,m,m),"Bas\u0131l\u0131 tutarak \xf6nbelle\u011fi temizleyip yenileyin")
+i=A.arl(A.CU(!1,i,!0,new A.bR(B.kB,A.bL("versiyon (03.11.2026-16.44)",m,m,m,h==null?m:h.Kc(B.aR.ha(0.6),12),m,m),m),m,!0,m,m,m,m,m,new A.ax4(n),m,m,m,m),"Bas\u0131l\u0131 tutarak \xf6nbelle\u011fi temizleyip yenileyin")
 h=A.cJ(m,m,B.o,B.cI,m,m,m,1,m,m,m,m,80)
 s=t.p
 r=A.cX(A.b([B.Mi,B.mv,A.amh(m,m,m,B.cc,m,m,!0,m,B.aaD,B.aG,m,m,B.au,B.aO)],s),B.x,B.t,B.aM,0)
@@ -108379,7 +108379,7 @@ B.afk=new A.bJ("B\xfcy\xfctmek i\xe7in dokunun",null,B.aey,null,null,null,null,n
 B.Rt=s([B.Mr,B.iZ,B.afk],t.p)
 B.a71=new A.lj(B.ad,B.t,B.aM,B.x,null,B.b4,null,0,B.Rt,null)
 B.c9=new A.cN(10,null,null,null)
-B.afs=new A.bJ("Uygulaman\u0131z g\xfcncel (versiyon (03.11.2026-07.06)). En son s\xfcr\xfcm\xfc kullan\u0131yorsunuz.",null,B.bL,null,null,null,null,null,null)
+B.afs=new A.bJ("Uygulaman\u0131z g\xfcncel (versiyon (03.11.2026-16.44)). En son s\xfcr\xfcm\xfc kullan\u0131yorsunuz.",null,B.bL,null,null,null,null,null,null)
 B.La=new A.jQ(1,B.cn,B.afs,null)
 B.T0=s([B.q8,B.c9,B.La],t.p)
 B.a72=new A.lj(B.ad,B.t,B.y,B.x,null,B.b4,null,0,B.T0,null)
