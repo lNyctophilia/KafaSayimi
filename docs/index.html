@@ -116,7 +116,7 @@
         if (res.ok) {
           const data = await res.json();
           const etag = res.headers.get('etag') || res.headers.get('last-modified') || '';
-          const remoteVersion = ((data.version || '1.0.0') + '+' + (data.build_number || '1') + '_' + etag).replace(/["\s]/g, '');
+          const remoteVersion = (data.version_tag || ((data.version || '1.0.0') + '+' + (data.build_number || '1') + '_' + etag)).replace(/["\s]/g, '');
 
           const localVersion = localStorage.getItem(KS_STORAGE_KEY);
           const lastReload = parseInt(localStorage.getItem(KS_RELOAD_GUARD) || '0', 10);

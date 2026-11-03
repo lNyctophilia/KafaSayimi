@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/config/app_version.dart';
+import '../../../core/services/app_update_service.dart';
 import '../../../core/services/gemini_vision_service.dart';
 import '../../../core/theme/app_colors.dart';
 
@@ -27,6 +30,7 @@ class _GeminiApiScreenState extends State<GeminiApiScreen> {
   String? _validationMessage;
   bool _isCustomKey = false;
   bool _isLoadingInitial = true;
+  bool _isCheckingForUpdates = false;
 
   @override
   void initState() {
@@ -666,7 +670,7 @@ class _GeminiApiScreenState extends State<GeminiApiScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Gemini API Ayarları'),
+        title: const Text('Ayarlar'),
         centerTitle: false,
         backgroundColor: AppColors.surface,
         foregroundColor: AppColors.textPrimary,
@@ -979,6 +983,9 @@ class _GeminiApiScreenState extends State<GeminiApiScreen> {
                                 ),
                               ),
                             ),
+
+                            // 4. App Info, Copyright & Update Check Section
+                            _buildAppInfoSection(),
                           ],
                         ),
                       ),
@@ -986,6 +993,311 @@ class _GeminiApiScreenState extends State<GeminiApiScreen> {
             );
           },
         ),
+      ),
+    );
+  }
+
+  Future<void> _checkForUpdatesManually() async {
+    setState(() {
+      _isCheckingForUpdates = true;
+    });
+
+    try {
+      final result = await AppUpdateService.checkForUpdatesManual();
+      if (!mounted) return;
+
+      if (result.status == UpdateCheckStatus.updateAvailable) {
+        final newVer = result.availableVersion ?? 'Yeni Sürüm';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(
+                  Icons.system_update_rounded,
+                  color: AppColors.accentLight,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Yeni sürüm bulundu ($newVer)! Güncelleme uygulanıyor...',
+                    style: const TextStyle(color: AppColors.textPrimary),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: AppColors.card,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: const BorderSide(color: AppColors.accentLight),
+            ),
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+
+        await Future.delayed(const Duration(milliseconds: 1200));
+        await AppUpdateService.forceHardReload(result.availableVersion);
+      } else if (result.status == UpdateCheckStatus.upToDate) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(
+                  Icons.check_circle_rounded,
+                  color: AppColors.success,
+                ),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Uygulamanız güncel (${AppVersion.current}). En son sürümü kullanıyorsunuz.',
+                    style: TextStyle(color: AppColors.textPrimary),
+                  ),
+                ),
+              ],
+            ),
+            action: SnackBarAction(
+              label: 'Yenile',
+              textColor: AppColors.accentLight,
+              onPressed: () => AppUpdateService.forceHardReload(),
+            ),
+            backgroundColor: AppColors.card,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: const BorderSide(color: AppColors.cardLight),
+            ),
+            duration: const Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(
+                  Icons.warning_amber_rounded,
+                  color: AppColors.warning,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    result.message ??
+                        'Güncelleme kontrolü yapılamadı. Lütfen internet bağlantınızı kontrol edin.',
+                    style: const TextStyle(color: AppColors.textPrimary),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: AppColors.card,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: const BorderSide(color: AppColors.warning),
+            ),
+            duration: const Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Hata oluştu: $e',
+            style: const TextStyle(color: AppColors.textPrimary),
+          ),
+          backgroundColor: AppColors.card,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCheckingForUpdates = false;
+        });
+      }
+    }
+  }
+
+  Widget _buildAppInfoSection() {
+    return Container(
+      margin: const EdgeInsets.only(top: 36, bottom: 16),
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.cardLight,
+          width: 1.2,
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Uygulama İkonu
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: Image.asset(
+                'assets/icon/app_icon.png',
+                width: 72,
+                height: 72,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: AppColors.cardLight,
+                  padding: const EdgeInsets.all(16),
+                  child: SvgPicture.asset(
+                    'assets/icon/app_icon.svg',
+                    colorFilter: const ColorFilter.mode(
+                      AppColors.accentLight,
+                      BlendMode.srcIn,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Uygulama İsmi
+          const Text(
+            'Kafa Sayımı',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+              letterSpacing: 0.3,
+            ),
+          ),
+          const SizedBox(height: 6),
+
+          // Ana Sayfadaki Versiyon Kısmının Birebir Aynısı
+          Tooltip(
+            message: 'Basılı tutarak önbelleği temizleyip yenileyin',
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onLongPress: () async {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Önbellek temizleniyor ve uygulama sıfırdan başlatılıyor...',
+                    ),
+                    behavior: SnackBarBehavior.floating,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+                await Future.delayed(const Duration(milliseconds: 600));
+                await AppUpdateService.forceHardReload();
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                child: Text(
+                  AppVersion.current,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary.withValues(alpha: 0.6),
+                        fontSize: 12,
+                      ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // İnce ayırıcı çizgi
+          Container(
+            height: 1,
+            width: 80,
+            color: AppColors.divider,
+          ),
+          const SizedBox(height: 14),
+
+          // Geliştirici İsmi ve Copyright
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.code_rounded,
+                size: 15,
+                color: AppColors.accentLight,
+              ),
+              const SizedBox(width: 6),
+              RichText(
+                text: const TextSpan(
+                  text: 'Geliştirici: ',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: AppColors.textSecondary,
+                  ),
+                  children: [
+                    TextSpan(
+                      text: 'lNyctophilia',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.accentLight,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            '© 2026 lNyctophilia. Tüm hakları saklıdır.',
+            style: TextStyle(
+              fontSize: 11.5,
+              color: AppColors.textHint,
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Güncellemeleri Denetle Butonu
+          OutlinedButton.icon(
+            onPressed: _isCheckingForUpdates ? null : _checkForUpdatesManually,
+            icon: _isCheckingForUpdates
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.accentLight,
+                    ),
+                  )
+                : const Icon(Icons.sync_rounded, size: 18),
+            label: Text(
+              _isCheckingForUpdates
+                  ? 'Güncellemeler Denetleniyor...'
+                  : 'Güncellemeleri Denetle',
+              style: const TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.accentLight,
+              side: const BorderSide(color: AppColors.accentLight, width: 1.2),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
