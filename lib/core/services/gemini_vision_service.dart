@@ -247,13 +247,16 @@ class GeminiVisionService {
     const prompt = '''
 Bu görselde bir sayım kağıdı var. 3 sütun halinde kutucuklar var.
 Her kutucukta:
-- Barkod ve altında basılmış kodu (örn: RR-0133 / 2710)
+- Barkod ve altında basılmış kodu/yazısı
 - "Adet:" etiketi ve yanında/altında el yazısı sayılar (örn: 34, 24, 15, 42, 53, 40, 9 SON vs.)
 
 GÖREV:
 1. Yalnızca el yazısı ile adet girilmiş olan hücreleri sırasıyla listele. Boş hücreleri ALMA.
 2. "quantity" (adet) kısmında YALNIZCA RAKAM / SAYI olmalıdır! "SON", "Adet" gibi hiçbir harf veya kelimeyi YAZMA (örn: "9 SON" yazıyorsa YALNIZCA "9" yaz).
-3. Barkod kodunu "RR-XXXX/YYYY" formatında standartlaştır.
+3. BARKODUN ALTINDAKİ YAZIYI OKUMA (ÇOK ÖNEMLİ):
+   - Barkodun hemen altında basılı metin/kod ne yazıyorsa doğrudan ve aynen onu oku.
+   - Bazı kağıtlarda tarih yerine farklı ibareler, harfler veya sayılar yazabilir; kesinlikle belirli bir tarih formatı veya kalıp (RR-XXXX/YYYY gibi) dayatma.
+   - Araya veya başına tire ('-'), eğik çizgi ('/') gibi işaretler KOYMA / EKLEME. Tire falan koymadan doğrudan barkodun altında ne yazıyorsa onu düz bir şekilde yaz.
 4. ÜSTÜ ÇİZİLİ / KARALANMIŞ ADETLER (ÇOK ÖNEMLİ):
    - Bazen el yazısı adetlerin üzeri çizilmiş, karalanmış veya iptal edilmiş olabilir.
    - Üstü çizili veya karalanmış sayıları kesin doğru bir adetmiş gibi okumaya veya tahmin etmeye ÇALIŞMA!
@@ -268,7 +271,7 @@ GÖREV:
 
 YALNIZCA geçerli bir JSON array döndür:
 [
-  {"barcode": "RR-0133/2710", "quantity": "34", "confidence": 98}
+  {"barcode": "RR01332710", "quantity": "34", "confidence": 98}
 ]
 ''';
 
@@ -307,7 +310,7 @@ YALNIZCA geçerli bir JSON array döndür:
               headers: {'Content-Type': 'application/json'},
               body: requestBody,
             )
-            .timeout(const Duration(seconds: 20));
+            .timeout(const Duration(seconds: 28));
 
         if (response.statusCode == 200) {
           int remainingAfter = await _recordUsage();
@@ -340,6 +343,7 @@ YALNIZCA geçerli bir JSON array döndür:
           }
 
           final entries = _parseJsonOutput(text);
+          entries.sort((a, b) => BarcodeComparator.compare(a.barcodeCode, b.barcodeCode));
 
           return GeminiAnalysisResult(
             entries: entries,
@@ -354,7 +358,10 @@ YALNIZCA geçerli bir JSON array döndür:
             'API Anahtarı geçersiz veya yetkisiz (Kod: ${response.statusCode}). Lütfen anahtarınızı kontrol edin.',
           );
         } else if (response.statusCode == 429) {
-          throw Exception('Dakikalık istek sınırı aşıldı. Lütfen birkaç saniye bekleyin.');
+          // Rate limit - wait 2 seconds and retry next model
+          await Future.delayed(const Duration(seconds: 2));
+          lastError = 'Dakikalık istek sınırı (429), alternatif deneniyor...';
+          continue;
         } else {
           lastError = 'Gemini API Hatası ($model - ${response.statusCode}): ${response.body}';
         }
@@ -365,6 +372,143 @@ YALNIZCA geçerli bir JSON array döndür:
     }
 
     throw Exception(lastError ?? 'Tüm Gemini modelleri denendi ancak yanıt alınamadı.');
+  }
+
+  /// Çoklu sayım kağıdı görüntüsünü paralel havuz (worker pool) ile analiz eder.
+  /// Sonuçları barkod adına göre artan (A-Z) sırada birleştirir ve döndürür.
+  static Future<GeminiAnalysisResult> analyzeMultipleImages({
+    required List<Uint8List> imagesBytes,
+    List<String?>? imagesPaths,
+    void Function(int completed, int total, String status)? onProgress,
+  }) async {
+    final total = imagesBytes.length;
+    if (total == 0) {
+      return GeminiAnalysisResult(
+        entries: [],
+        remainingRequests: await getRemainingRequests(),
+        totalLimit: ApiConfig.dailyRequestLimit,
+      );
+    }
+
+    if (total == 1) {
+      final res = await analyzeImage(
+        imageBytes: imagesBytes.first,
+        imagePath: (imagesPaths != null && imagesPaths.isNotEmpty)
+            ? imagesPaths.first
+            : null,
+      );
+      final singleEntries =
+          res.entries.map((e) => e.copyWith(pageIndex: 1)).toList();
+      singleEntries.sort(
+          (a, b) => BarcodeComparator.compare(a.barcodeCode, b.barcodeCode));
+      return GeminiAnalysisResult(
+        entries: singleEntries,
+        remainingRequests: res.remainingRequests,
+        totalLimit: res.totalLimit,
+      );
+    }
+
+    final remainingBefore = await getRemainingRequests();
+    if (remainingBefore <= 0) {
+      throw Exception(
+        'Günlük güvenlik limitine (${ApiConfig.dailyRequestLimit} istek) ulaştınız. '
+        'Yarın haklarınız otomatik yenilenecektir.',
+      );
+    }
+
+    final List<List<BarcodeEntry>?> results = List.filled(total, null);
+    final List<String> errors = [];
+    int completedCount = 0;
+    int remainingAfter = remainingBefore;
+
+    // Maksimum eşzamanlı istek (hız + kota dengesi için 3)
+    const int maxConcurrency = 3;
+    int nextIndex = 0;
+
+    Future<void> worker() async {
+      while (true) {
+        final currentIndex = nextIndex++;
+        if (currentIndex >= total) break;
+
+        final pageNumber = currentIndex + 1;
+        onProgress?.call(
+          completedCount,
+          total,
+          'Sayfa $pageNumber taranıyor... ($completedCount/$total tamamlandı)',
+        );
+
+        try {
+          final bytes = imagesBytes[currentIndex];
+          final path =
+              (imagesPaths != null && currentIndex < imagesPaths.length)
+                  ? imagesPaths[currentIndex]
+                  : null;
+
+          final result = await analyzeImage(
+            imageBytes: bytes,
+            imagePath: path,
+          );
+
+          remainingAfter = result.remainingRequests;
+
+          // Her kayda ait olduğu sayfa numarasını ekle
+          final pageEntries = result.entries
+              .map((e) => e.copyWith(pageIndex: pageNumber))
+              .toList();
+
+          results[currentIndex] = pageEntries;
+        } catch (e) {
+          errors.add('Sayfa $pageNumber hatası: $e');
+        } finally {
+          completedCount++;
+          onProgress?.call(
+            completedCount,
+            total,
+            '$completedCount / $total sayfa tamamlandı',
+          );
+        }
+      }
+    }
+
+    final workerCount = total < maxConcurrency ? total : maxConcurrency;
+    await Future.wait(List.generate(workerCount, (_) => worker()));
+
+    // Tüm sayfaların sonuçlarını birleştir
+    final allEntries = <BarcodeEntry>[];
+    for (final list in results) {
+      if (list != null) {
+        allEntries.addAll(list);
+      }
+    }
+
+    if (allEntries.isEmpty && errors.isNotEmpty) {
+      throw Exception(
+          'Sayfalar taranırken hata oluştu:\n${errors.join("\n")}');
+    }
+
+    // Barkod adına göre artan (A-Z, 0-9) sırada sırala
+    allEntries.sort(
+        (a, b) => BarcodeComparator.compare(a.barcodeCode, b.barcodeCode));
+
+    // Sıralı liste için temiz sıralı ID'ler ata
+    final sortedWithCleanIds = <BarcodeEntry>[];
+    for (int i = 0; i < allEntries.length; i++) {
+      final e = allEntries[i];
+      sortedWithCleanIds.add(BarcodeEntry(
+        id: i.toString(),
+        barcodeCode: e.barcodeCode,
+        quantity: e.quantity,
+        isQuantityConfident: e.isQuantityConfident,
+        confidence: e.confidence,
+        pageIndex: e.pageIndex,
+      ));
+    }
+
+    return GeminiAnalysisResult(
+      entries: sortedWithCleanIds,
+      remainingRequests: remainingAfter,
+      totalLimit: ApiConfig.dailyRequestLimit,
+    );
   }
 
   static List<BarcodeEntry> _parseJsonOutput(String rawText) {
@@ -387,7 +531,9 @@ YALNIZCA geçerli bir JSON array döndür:
 
     for (final item in list) {
       if (item is Map<String, dynamic>) {
-        final barcode = (item['barcode'] ?? item['code'] ?? '').toString().trim();
+        var barcode = (item['barcode'] ?? item['code'] ?? '').toString().trim();
+        // Tire veya bölü işaretlerini temizle (tire falan koymadan düz metin olarak al)
+        barcode = barcode.replaceAll(RegExp(r'[-/]'), '').trim();
         var quantity = (item['quantity'] ?? item['adet'] ?? '').toString().trim();
 
         // Strip any letters or words like "SON", keeping only pure digits

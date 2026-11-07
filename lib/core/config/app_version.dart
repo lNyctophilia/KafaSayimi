@@ -1,3 +1,3 @@
 ﻿class AppVersion {
-  static const String current = 'versiyon (03.11.2026-16.44)';
+  static const String current = 'versiyon (07.11.2026-03.31)';
 }

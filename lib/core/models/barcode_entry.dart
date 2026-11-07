@@ -1,9 +1,10 @@
 class BarcodeEntry {
   final String id;
-  final String barcodeCode; // örn: RR-0133/2710
+  final String barcodeCode; // örn: RR01332710
   final String quantity;    // örn: 34
   final bool isQuantityConfident;
   final double confidence;   // Eminlik skoru: 0.0 - 100.0 (örn: 98.0, 92.0, 85.0)
+  final int? pageIndex;      // 1-based sayfa numarası (örn: 1, 2, 3...)
 
   const BarcodeEntry({
     required this.id,
@@ -11,6 +12,7 @@ class BarcodeEntry {
     required this.quantity,
     this.isQuantityConfident = true,
     this.confidence = 100.0,
+    this.pageIndex,
   });
 
   /// Yüzde olarak tam sayı eminlik skoru (0 - 100)
@@ -27,17 +29,20 @@ class BarcodeEntry {
   bool get isUnder90 => isUnder87;
 
   BarcodeEntry copyWith({
+    String? id,
     String? barcodeCode,
     String? quantity,
     bool? isQuantityConfident,
     double? confidence,
+    int? pageIndex,
   }) {
     return BarcodeEntry(
-      id: id,
+      id: id ?? this.id,
       barcodeCode: barcodeCode ?? this.barcodeCode,
       quantity: quantity ?? this.quantity,
       isQuantityConfident: isQuantityConfident ?? this.isQuantityConfident,
       confidence: confidence ?? this.confidence,
+      pageIndex: pageIndex ?? this.pageIndex,
     );
   }
 
@@ -49,5 +54,43 @@ class BarcodeEntry {
 
   @override
   String toString() =>
-      'BarcodeEntry(code: $barcodeCode, qty: $quantity, conf: $confidencePercentage%, confident: $isQuantityConfident)';
+      'BarcodeEntry(code: $barcodeCode, qty: $quantity, conf: $confidencePercentage%, confident: $isQuantityConfident, page: $pageIndex)';
+}
+
+/// Barkod kodlarını doğal artan (A-Z, 0-9) sırada karşılaştırır
+class BarcodeComparator {
+  /// Compares two barcode strings in natural ascending order (A to Z, 0 to 9).
+  /// Numbers within strings are compared by their numerical value.
+  static int compare(String a, String b) {
+    final cleanA = a.trim();
+    final cleanB = b.trim();
+
+    if (cleanA.isEmpty && cleanB.isEmpty) return 0;
+    if (cleanA.isEmpty) return 1;
+    if (cleanB.isEmpty) return -1;
+
+    final regExp = RegExp(r'(\d+)|(\D+)');
+    final matchesA = regExp.allMatches(cleanA.toUpperCase()).toList();
+    final matchesB = regExp.allMatches(cleanB.toUpperCase()).toList();
+
+    final minLen = matchesA.length < matchesB.length ? matchesA.length : matchesB.length;
+
+    for (int i = 0; i < minLen; i++) {
+      final tokenA = matchesA[i].group(0)!;
+      final tokenB = matchesB[i].group(0)!;
+
+      final numA = BigInt.tryParse(tokenA);
+      final numB = BigInt.tryParse(tokenB);
+
+      if (numA != null && numB != null) {
+        final cmp = numA.compareTo(numB);
+        if (cmp != 0) return cmp;
+      } else {
+        final cmp = tokenA.compareTo(tokenB);
+        if (cmp != 0) return cmp;
+      }
+    }
+
+    return matchesA.length.compareTo(matchesB.length);
+  }
 }

@@ -5,12 +5,18 @@ import 'package:flutter/material.dart';
 class FullScreenImageViewer extends StatefulWidget {
   final String? imagePath;
   final Uint8List? imageBytes;
+  final List<Uint8List>? allImageBytes;
+  final List<String?>? allImagePaths;
+  final int initialIndex;
   final String? heroTag;
 
   const FullScreenImageViewer({
     super.key,
     this.imagePath,
     this.imageBytes,
+    this.allImageBytes,
+    this.allImagePaths,
+    this.initialIndex = 0,
     this.heroTag,
   });
 
@@ -22,10 +28,38 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
   final TransformationController _controller = TransformationController();
   TapDownDetails? _doubleTapDetails;
   double _currentScale = 1.0;
+  late int _currentIndex;
+
+  int get _totalCount {
+    if (widget.allImageBytes != null && widget.allImageBytes!.isNotEmpty) {
+      return widget.allImageBytes!.length;
+    }
+    if (widget.allImagePaths != null && widget.allImagePaths!.isNotEmpty) {
+      return widget.allImagePaths!.length;
+    }
+    return 1;
+  }
+
+  Uint8List? get _currentBytes {
+    if (widget.allImageBytes != null &&
+        _currentIndex < widget.allImageBytes!.length) {
+      return widget.allImageBytes![_currentIndex];
+    }
+    return widget.imageBytes;
+  }
+
+  String? get _currentPath {
+    if (widget.allImagePaths != null &&
+        _currentIndex < widget.allImagePaths!.length) {
+      return widget.allImagePaths![_currentIndex];
+    }
+    return widget.imagePath;
+  }
 
   @override
   void initState() {
     super.initState();
+    _currentIndex = widget.initialIndex.clamp(0, _totalCount - 1);
     _controller.addListener(() {
       final scale = _controller.value.getMaxScaleOnAxis();
       if ((scale - _currentScale).abs() > 0.05) {
@@ -40,6 +74,24 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  void _goToPrevious() {
+    if (_currentIndex > 0) {
+      setState(() {
+        _currentIndex--;
+        _resetZoom();
+      });
+    }
+  }
+
+  void _goToNext() {
+    if (_currentIndex < _totalCount - 1) {
+      setState(() {
+        _currentIndex++;
+        _resetZoom();
+      });
+    }
   }
 
   void _handleDoubleTap() {
@@ -92,9 +144,12 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
   @override
   Widget build(BuildContext context) {
     Widget imageWidget;
-    if (widget.imageBytes != null) {
+    final bytes = _currentBytes;
+    final path = _currentPath;
+
+    if (bytes != null) {
       imageWidget = Image.memory(
-        widget.imageBytes!,
+        bytes,
         fit: BoxFit.contain,
         errorBuilder: (_, __, ___) => const Center(
           child: Text(
@@ -103,10 +158,10 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
           ),
         ),
       );
-    } else if (widget.imagePath != null && widget.imagePath!.isNotEmpty) {
+    } else if (path != null && path.isNotEmpty) {
       if (kIsWeb) {
         imageWidget = Image.network(
-          widget.imagePath!,
+          path,
           fit: BoxFit.contain,
           errorBuilder: (_, __, ___) => const Center(
             child: Text(
@@ -117,7 +172,7 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
         );
       } else {
         imageWidget = Image.file(
-          File(widget.imagePath!),
+          File(path),
           fit: BoxFit.contain,
           errorBuilder: (_, __, ___) => const Center(
             child: Text(
@@ -136,24 +191,41 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
       );
     }
 
-    if (widget.heroTag != null) {
-      imageWidget = Hero(
-        tag: widget.heroTag!,
-        child: imageWidget,
-      );
-    }
-
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black.withValues(alpha: 0.8),
         foregroundColor: Colors.white,
         elevation: 0,
-        title: Text(
-          'Görüntü İnceleme (${(_currentScale * 100).round()}%)',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _totalCount > 1
+                  ? 'Sayfa ${_currentIndex + 1} / $_totalCount'
+                  : 'Görüntü İnceleme',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              'Yakınlaştırma: ${(_currentScale * 100).round()}%',
+              style: const TextStyle(fontSize: 11, color: Colors.white70),
+            ),
+          ],
         ),
         actions: [
+          if (_totalCount > 1) ...[
+            IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+              onPressed: _currentIndex > 0 ? _goToPrevious : null,
+              tooltip: 'Önceki Sayfa',
+            ),
+            IconButton(
+              icon: const Icon(Icons.arrow_forward_ios_rounded, size: 18),
+              onPressed: _currentIndex < _totalCount - 1 ? _goToNext : null,
+              tooltip: 'Sonraki Sayfa',
+            ),
+          ],
           if (_currentScale != 1.0)
             IconButton(
               icon: const Icon(Icons.restart_alt_rounded),

@@ -9,7 +9,7 @@ Geleneksel optik karakter tanıma (OCR) motorlarının el yazılarında yetersiz
 ## ✨ Öne Çıkan Özellikler
 
 - 🤖 **Yapay Zeka Destekli OCR (Gemini Vision)**:
-  - 3 sütunlu sayım kağıtlarındaki barkod kodlarını (`RR-XXXX/YYYY` standardında) ve yanlarındaki el yazısı sayıları yüksek doğrulukla okur.
+  - 3 sütunlu sayım kağıtlarındaki barkod altı kodlarını ve yanlarındaki el yazısı sayıları yüksek doğrulukla okur.
   - "SON", "Adet" gibi el yazısı ek ibareleri otomatik olarak ayıklar, yalnızca saf adet bilgisini alır.
   - Model yedekleme (fallback) mimarisi: `gemini-3-flash-preview`, `gemini-flash-lite-latest` ve `gemini-3.1-flash-lite-preview` modelleri sıralı olarak denenir.
 

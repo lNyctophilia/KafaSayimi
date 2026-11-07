@@ -33,7 +33,69 @@ class ScanNotifier extends StateNotifier<ScanState> {
   }
 
   void setImage({String? path, Uint8List? bytes}) {
-    state = state.copyWith(imageDataUrl: path, imageBytes: bytes);
+    state = state.copyWith(
+      imageDataUrl: path,
+      imageBytes: bytes,
+      allImagePaths: path != null ? [path] : [],
+      allImageBytes: bytes != null ? [bytes] : [],
+      currentProcessingPage: 1,
+      totalPagesToProcess: 1,
+    );
+  }
+
+  void setImages({
+    required List<Uint8List> bytesList,
+    List<String?>? paths,
+  }) {
+    state = state.copyWith(
+      imageBytes: bytesList.isNotEmpty ? bytesList.first : null,
+      imageDataUrl: (paths != null && paths.isNotEmpty) ? paths.first : null,
+      allImageBytes: bytesList,
+      allImagePaths: paths ?? [],
+      currentProcessingPage: 0,
+      totalPagesToProcess: bytesList.length,
+    );
+  }
+
+  void setMultiPageProgress({
+    required int current,
+    required int total,
+    String? detail,
+    int? ocrProgress,
+  }) {
+    state = state.copyWith(
+      currentProcessingPage: current,
+      totalPagesToProcess: total,
+      statusDetail: detail,
+      ocrProgress: ocrProgress ?? state.ocrProgress,
+    );
+  }
+
+  /// Barkod koduna göre A-Z (artan) sırala
+  void sortAscending() {
+    final list = List<BarcodeEntry>.from(state.entries);
+    list.sort((a, b) => BarcodeComparator.compare(a.barcodeCode, b.barcodeCode));
+    state = state.copyWith(entries: list);
+  }
+
+  /// Barkod koduna göre Z-A (azalan) sırala
+  void sortDescending() {
+    final list = List<BarcodeEntry>.from(state.entries);
+    list.sort((a, b) => BarcodeComparator.compare(b.barcodeCode, a.barcodeCode));
+    state = state.copyWith(entries: list);
+  }
+
+  /// Sayfa numarasına göre sırala
+  void sortByPage() {
+    final list = List<BarcodeEntry>.from(state.entries);
+    list.sort((a, b) {
+      final pageA = a.pageIndex ?? 1;
+      final pageB = b.pageIndex ?? 1;
+      final pageCmp = pageA.compareTo(pageB);
+      if (pageCmp != 0) return pageCmp;
+      return BarcodeComparator.compare(a.barcodeCode, b.barcodeCode);
+    });
+    state = state.copyWith(entries: list);
   }
 
   void updateEntry(int index, BarcodeEntry updated) {

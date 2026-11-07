@@ -28,6 +28,47 @@ class ResultsScreen extends ConsumerWidget {
           tooltip: 'Geri',
         ),
         actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.sort_rounded),
+            tooltip: 'Sırala',
+            onSelected: (value) {
+              if (value == 'asc') notifier.sortAscending();
+              if (value == 'desc') notifier.sortDescending();
+              if (value == 'page') notifier.sortByPage();
+            },
+            itemBuilder: (ctx) => const [
+              PopupMenuItem(
+                value: 'asc',
+                child: Row(
+                  children: [
+                    Icon(Icons.arrow_upward_rounded, size: 18),
+                    SizedBox(width: 8),
+                    Text('Barkod (A-Z) Artan'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'desc',
+                child: Row(
+                  children: [
+                    Icon(Icons.arrow_downward_rounded, size: 18),
+                    SizedBox(width: 8),
+                    Text('Barkod (Z-A) Azalan'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'page',
+                child: Row(
+                  children: [
+                    Icon(Icons.auto_stories_rounded, size: 18),
+                    SizedBox(width: 8),
+                    Text('Sayfa Sırasına Göre'),
+                  ],
+                ),
+              ),
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.add_rounded),
             onPressed: () => notifier.addEntry(),
@@ -50,10 +91,14 @@ class ResultsScreen extends ConsumerWidget {
           : Column(
               children: [
                 // Preview image (if available)
-                if (state.imageBytes != null || state.imageDataUrl != null)
+                if (state.imageBytes != null ||
+                    state.imageDataUrl != null ||
+                    state.allImageBytes.isNotEmpty)
                   _ImagePreviewBanner(
                     imagePath: state.imageDataUrl,
                     imageBytes: state.imageBytes,
+                    allImageBytes: state.allImageBytes,
+                    allImagePaths: state.allImagePaths,
                   ),
 
                 // Summary banner
@@ -132,6 +177,11 @@ class _SummaryBanner extends StatelessWidget {
     final criticalCount = entries
         .where((e) => e.quantity.trim().isNotEmpty && e.isUnder87)
         .length;
+    final pageCount = entries
+        .map((e) => e.pageIndex)
+        .whereType<int>()
+        .toSet()
+        .length;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -149,9 +199,28 @@ class _SummaryBanner extends StatelessWidget {
                   size: 18, color: colorScheme.primary),
               const SizedBox(width: 6),
               Text(
-                'Adet Girilen: $filled',
+                'Adet: $filled',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
+              if (pageCount > 1) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    '$pageCount Sayfa',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
           if (lowConfidenceCount > 0)
@@ -198,7 +267,15 @@ class _SummaryBanner extends StatelessWidget {
 class _ImagePreviewBanner extends StatefulWidget {
   final String? imagePath;
   final Uint8List? imageBytes;
-  const _ImagePreviewBanner({this.imagePath, this.imageBytes});
+  final List<Uint8List> allImageBytes;
+  final List<String?> allImagePaths;
+
+  const _ImagePreviewBanner({
+    this.imagePath,
+    this.imageBytes,
+    this.allImageBytes = const [],
+    this.allImagePaths = const [],
+  });
 
   @override
   State<_ImagePreviewBanner> createState() => _ImagePreviewBannerState();
@@ -206,13 +283,42 @@ class _ImagePreviewBanner extends StatefulWidget {
 
 class _ImagePreviewBannerState extends State<_ImagePreviewBanner> {
   bool _expanded = false;
+  int _selectedPageIndex = 0;
+
+  int get _totalImages {
+    if (widget.allImageBytes.isNotEmpty) return widget.allImageBytes.length;
+    if (widget.allImagePaths.isNotEmpty) return widget.allImagePaths.length;
+    if (widget.imageBytes != null || widget.imagePath != null) return 1;
+    return 0;
+  }
+
+  Uint8List? get _currentBytes {
+    if (widget.allImageBytes.isNotEmpty &&
+        _selectedPageIndex < widget.allImageBytes.length) {
+      return widget.allImageBytes[_selectedPageIndex];
+    }
+    return widget.imageBytes;
+  }
+
+  String? get _currentPath {
+    if (widget.allImagePaths.isNotEmpty &&
+        _selectedPageIndex < widget.allImagePaths.length) {
+      return widget.allImagePaths[_selectedPageIndex];
+    }
+    return widget.imagePath;
+  }
 
   void _openFullScreen() {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => FullScreenImageViewer(
-          imagePath: widget.imagePath,
-          imageBytes: widget.imageBytes,
+          imagePath: _currentPath,
+          imageBytes: _currentBytes,
+          allImageBytes:
+              widget.allImageBytes.isNotEmpty ? widget.allImageBytes : null,
+          allImagePaths:
+              widget.allImagePaths.isNotEmpty ? widget.allImagePaths : null,
+          initialIndex: _selectedPageIndex,
           heroTag: 'scanned_image_preview',
         ),
       ),
@@ -220,24 +326,27 @@ class _ImagePreviewBannerState extends State<_ImagePreviewBanner> {
   }
 
   Widget _buildPreviewImage() {
-    if (widget.imageBytes != null) {
+    final bytes = _currentBytes;
+    final path = _currentPath;
+
+    if (bytes != null) {
       return Image.memory(
-        widget.imageBytes!,
+        bytes,
         fit: BoxFit.contain,
         errorBuilder: (_, __, ___) =>
             const Center(child: Text('Görüntü önizlemesi yok')),
       );
-    } else if (widget.imagePath != null && widget.imagePath!.isNotEmpty) {
+    } else if (path != null && path.isNotEmpty) {
       if (kIsWeb) {
         return Image.network(
-          widget.imagePath!,
+          path,
           fit: BoxFit.contain,
           errorBuilder: (_, __, ___) =>
               const Center(child: Text('Görüntü önizlemesi yok')),
         );
       } else {
         return Image.file(
-          File(widget.imagePath!),
+          File(path),
           fit: BoxFit.contain,
           errorBuilder: (_, __, ___) =>
               const Center(child: Text('Görüntü önizlemesi yok')),
@@ -263,15 +372,40 @@ class _ImagePreviewBannerState extends State<_ImagePreviewBanner> {
                 Expanded(
                   child: InkWell(
                     onTap: () => setState(() => _expanded = !_expanded),
-                    child: const Row(
+                    child: Row(
                       children: [
-                        Icon(Icons.image_rounded, size: 20),
-                        SizedBox(width: 12),
-                        Expanded(child: Text('Taranan görüntü')),
+                        const Icon(Icons.image_rounded, size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _totalImages > 1
+                                ? 'Sayfa ${_selectedPageIndex + 1} / $_totalImages'
+                                : 'Taranan görüntü',
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
                       ],
                     ),
                   ),
                 ),
+                if (_totalImages > 1) ...[
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                        size: 16),
+                    tooltip: 'Önceki Sayfa',
+                    onPressed: _selectedPageIndex > 0
+                        ? () => setState(() => _selectedPageIndex--)
+                        : null,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.arrow_forward_ios_rounded,
+                        size: 16),
+                    tooltip: 'Sonraki Sayfa',
+                    onPressed: _selectedPageIndex < _totalImages - 1
+                        ? () => setState(() => _selectedPageIndex++)
+                        : null,
+                  ),
+                ],
                 IconButton(
                   icon: const Icon(Icons.fullscreen_rounded),
                   tooltip: 'Tam Ekran Büyüt',
