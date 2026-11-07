@@ -31342,7 +31342,7 @@ a0=J.fi(l,"version_tag")
 j=a0==null?null:B.c.bC(J.dS(a0))
 s=j!=null&&j.length!==0?10:11
 break
-case 10:s=j!=="versiyon (07.11.2026-03.50)"?12:13
+case 10:s=j!=="versiyon (07.11.2026-03.51)"?12:13
 break
 case 12:s=14
 return A.z(A.Gb(),$async$lL)
@@ -31385,7 +31385,7 @@ if(d.b===200){a0=d
 c=A.aV("current\\s*=\\s*[']([^']+)[']",!0,!1,!1).f_(A.a5v(A.a5h(a0.e)).e1(a0.w))
 if(c!=null){a0=c.b[1]
 b=a0==null?null:B.c.bC(a0)
-if(b!=null&&b.length!==0&&b!=="versiyon (07.11.2026-03.50)"){q=new A.ns(B.fZ,b,null)
+if(b!=null&&b.length!==0&&b!=="versiyon (07.11.2026-03.51)"){q=new A.ns(B.fZ,b,null)
 s=1
 break}}}p=4
 s=26
@@ -96126,7 +96126,7 @@ i=A.b3(8)
 h=n.c
 h.toString
 h=A.X(h).ok.Q
-i=A.arJ(A.rI(!1,i,!0,new A.bR(B.kG,A.bl("versiyon (07.11.2026-03.50)",m,m,m,h==null?m:h.Kq(B.aH.eS(0.6),12),m,m),m),m,!0,m,m,m,m,m,new A.axz(n),m,m,m,m),"Bas\u0131l\u0131 tutarak \xf6nbelle\u011fi temizleyip yenileyin")
+i=A.arJ(A.rI(!1,i,!0,new A.bR(B.kG,A.bl("versiyon (07.11.2026-03.51)",m,m,m,h==null?m:h.Kq(B.aH.eS(0.6),12),m,m),m),m,!0,m,m,m,m,m,new A.axz(n),m,m,m,m),"Bas\u0131l\u0131 tutarak \xf6nbelle\u011fi temizleyip yenileyin")
 h=A.c2(m,m,B.m,B.cL,m,m,m,1,m,m,m,m,80)
 s=t.p
 r=A.cv(A.b([B.MK,B.mC,A.amG(m,m,m,B.cg,m,m,!0,m,B.abg,B.aL,m,m,B.ax,B.aQ)],s),B.w,B.p,B.az,0)
@@ -109386,7 +109386,7 @@ B.ag_=new A.bs("B\xfcy\xfctmek i\xe7in dokunun",null,B.afc,null,null,null,null,n
 B.S6=s([B.MY,B.j5,B.ag_],t.p)
 B.a7D=new A.n6(B.ae,B.p,B.az,B.w,null,B.b5,null,0,B.S6,null)
 B.bL=new A.cw(10,null,null,null)
-B.ag7=new A.bs("Uygulaman\u0131z g\xfcncel (versiyon (07.11.2026-03.50)). En son s\xfcr\xfcm\xfc kullan\u0131yorsunuz.",null,B.bN,null,null,null,null,null,null)
+B.ag7=new A.bs("Uygulaman\u0131z g\xfcncel (versiyon (07.11.2026-03.51)). En son s\xfcr\xfcm\xfc kullan\u0131yorsunuz.",null,B.bN,null,null,null,null,null,null)
 B.LD=new A.l0(1,B.cN,B.ag7,null)
 B.TE=s([B.qk,B.bL,B.LD],t.p)
 B.a7E=new A.n6(B.ae,B.p,B.x,B.w,null,B.b5,null,0,B.TE,null)
