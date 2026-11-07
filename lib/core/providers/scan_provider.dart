@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/barcode_entry.dart';
 import '../models/scan_state.dart';
+import '../models/sheet_header_info.dart';
 
 class ScanNotifier extends StateNotifier<ScanState> {
   ScanNotifier() : super(const ScanState());
@@ -14,11 +15,24 @@ class ScanNotifier extends StateNotifier<ScanState> {
     state = state.copyWith(ocrProgress: progress);
   }
 
-  void setEntries(List<BarcodeEntry> entries) {
+  void setEntries(List<BarcodeEntry> entries, {SheetHeaderInfo? headerInfo}) {
     state = state.copyWith(
       entries: entries,
+      headerInfo: headerInfo ?? state.headerInfo,
       step: ProcessingStep.done,
     );
+  }
+
+  void setHeaderInfo(SheetHeaderInfo headerInfo) {
+    state = state.copyWith(headerInfo: headerInfo);
+  }
+
+  void setCustomFileName(String? fileName) {
+    state = state.copyWith(customFileName: fileName);
+  }
+
+  String getExportFileName() {
+    return state.exportFileName;
   }
 
   void setError(String message) {

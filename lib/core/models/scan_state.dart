@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'barcode_entry.dart';
+import 'sheet_header_info.dart';
 
 enum ProcessingStep {
   idle,
@@ -22,6 +23,8 @@ class ScanState {
   final int currentProcessingPage;
   final int totalPagesToProcess;
   final String? statusDetail;
+  final SheetHeaderInfo? headerInfo;
+  final String? customFileName;
 
   const ScanState({
     this.entries = const [],
@@ -35,7 +38,30 @@ class ScanState {
     this.currentProcessingPage = 0,
     this.totalPagesToProcess = 0,
     this.statusDetail,
+    this.headerInfo,
+    this.customFileName,
   });
+
+  /// Dışa aktarma veya paylaşım için dosya adı belirler.
+  /// Fotoğrafta alan (reyon/depo vb.), mekan (flormar vb.) veya tarih tespit edildiyse
+  /// 'reyon_flormar_26_12_2026.txt' tarzı format üretir.
+  /// Hiçbiri yoksa varsayılan 'sayim_YYYY-MM-DDTHH-mm-ss.txt' formatına döner.
+  String get exportFileName {
+    if (customFileName != null && customFileName!.trim().isNotEmpty) {
+      var name = customFileName!.trim();
+      if (!name.endsWith('.txt')) name = '$name.txt';
+      return name;
+    }
+    final generated = headerInfo?.generateFileName();
+    if (generated != null && generated.isNotEmpty) {
+      return generated;
+    }
+    final timestamp = DateTime.now()
+        .toIso8601String()
+        .replaceAll(':', '-')
+        .substring(0, 19);
+    return 'sayim_$timestamp.txt';
+  }
 
   bool get isProcessing =>
       step == ProcessingStep.loadingImage ||
@@ -78,6 +104,8 @@ class ScanState {
     int? currentProcessingPage,
     int? totalPagesToProcess,
     String? statusDetail,
+    SheetHeaderInfo? headerInfo,
+    String? customFileName,
   }) {
     return ScanState(
       entries: entries ?? this.entries,
@@ -92,6 +120,8 @@ class ScanState {
           currentProcessingPage ?? this.currentProcessingPage,
       totalPagesToProcess: totalPagesToProcess ?? this.totalPagesToProcess,
       statusDetail: statusDetail ?? this.statusDetail,
+      headerInfo: headerInfo ?? this.headerInfo,
+      customFileName: customFileName ?? this.customFileName,
     );
   }
 }

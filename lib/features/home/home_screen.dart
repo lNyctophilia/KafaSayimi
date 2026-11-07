@@ -311,7 +311,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
 
       notifier.setStep(ProcessingStep.parsing);
-      notifier.setEntries(result.entries);
+      notifier.setEntries(result.entries, headerInfo: result.header);
 
       if (mounted) {
         context.go('/results');

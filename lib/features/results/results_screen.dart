@@ -60,6 +60,16 @@ class ResultsScreen extends ConsumerWidget {
                     allImagePaths: state.allImagePaths,
                   ),
 
+                // Dosya Adı Bilgi ve Düzenleme Kartı
+                _FileNameBanner(
+                  filename: state.exportFileName,
+                  onEdit: () => _showEditFileNameDialog(
+                    context,
+                    ref,
+                    state.exportFileName,
+                  ),
+                ),
+
                 // Summary banner
                 _SummaryBanner(entries: state.entries),
 
@@ -89,11 +99,7 @@ class ResultsScreen extends ConsumerWidget {
   Future<void> _exportToTxt(BuildContext context, WidgetRef ref) async {
     final notifier = ref.read(scanProvider.notifier);
     final text = notifier.exportToText();
-    final timestamp = DateTime.now()
-        .toIso8601String()
-        .replaceAll(':', '-')
-        .substring(0, 19);
-    final filename = 'sayim_$timestamp.txt';
+    final filename = notifier.getExportFileName();
 
     try {
       await ExportService.exportText(filename, text);
@@ -116,6 +122,103 @@ class ResultsScreen extends ConsumerWidget {
         );
       }
     }
+  }
+
+  void _showEditFileNameDialog(
+      BuildContext context, WidgetRef ref, String currentName) {
+    final controller = TextEditingController(text: currentName);
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Dosya Adını Düzenle', style: TextStyle(fontSize: 18)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Dosya Adı',
+            hintText: 'reyon_flormar_26_12_2026.txt',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('İptal'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final newName = controller.text.trim();
+              if (newName.isNotEmpty) {
+                ref.read(scanProvider.notifier).setCustomFileName(newName);
+              }
+              Navigator.of(ctx).pop();
+            },
+            child: const Text('Kaydet'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FileNameBanner extends StatelessWidget {
+  final String filename;
+  final VoidCallback onEdit;
+
+  const _FileNameBanner({
+    required this.filename,
+    required this.onEdit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 6, 12, 2),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: colorScheme.primaryContainer.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: colorScheme.primary.withValues(alpha: 0.25),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.description_outlined,
+            size: 18,
+            color: colorScheme.primary,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              filename,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: colorScheme.onSurface,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          IconButton(
+            icon: Icon(
+              Icons.edit_outlined,
+              size: 16,
+              color: colorScheme.primary,
+            ),
+            tooltip: 'Dosya adını değiştir',
+            constraints: const BoxConstraints(),
+            padding: const EdgeInsets.all(4),
+            onPressed: onEdit,
+          ),
+        ],
+      ),
+    );
   }
 }
 

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/barcode_entry.dart';
+import '../models/sheet_header_info.dart';
 import '../config/api_config.dart';
 
 class ApiKeyValidationResult {
@@ -17,13 +18,25 @@ class ApiKeyValidationResult {
   });
 }
 
+class ParsedGeminiOutput {
+  final SheetHeaderInfo header;
+  final List<BarcodeEntry> entries;
+
+  const ParsedGeminiOutput({
+    this.header = const SheetHeaderInfo(),
+    this.entries = const [],
+  });
+}
+
 class GeminiAnalysisResult {
   final List<BarcodeEntry> entries;
+  final SheetHeaderInfo header;
   final int remainingRequests;
   final int totalLimit;
 
   GeminiAnalysisResult({
     required this.entries,
+    this.header = const SheetHeaderInfo(),
     required this.remainingRequests,
     required this.totalLimit,
   });
@@ -268,11 +281,33 @@ GÖREV:
    - El yazısı ve barkod net ve tereddütsüz ise: 92 - 100
    - El yazısı biraz silik, tereddütlü veya rakamlar tam net değilse (%92 altı sarı uyarı): 87 - 91
    - Üstü çizili, karalanmış, üzeri karalamayla kapatılmış, çok silik veya 1/7, 0/6, 3/8 gibi tereddüt içeren tüm şüpheli okumalarda (%87 altı KIRMIZI UYARI): 60 - 75 (Kesinlikle 87'nin altında olmalı!)
+6. SAYFA BAŞLIK BİLGİLERİ (ÇOK ÖNEMLİ - DOSYA ADI İÇİN):
+   Kağıdın en üst kısmında yer alan başlık bilgilerini dikkatle oku:
+   - "area" (Sağ Üstteki Alan Adı):
+     * Kağıdın sağ üst kısmında genellikle alan adı kısmı olur (örn: "reyon", "tester", "depo", "stand", "çekmece" vb. yazılar).
+     * Sağ üstte yazan bu alan/bölüm adını doğrudan oku (küçük harflerle, örn: "reyon"). Eğer sağ üstte böyle bir alan yazısı yoksa veya okunmuyorsa boş ("") bırak.
+   - "venue" (Sol Üstteki Mekan / Marka):
+     * Kağıdın sol üst kısmında genellikle tarih ve ardından tire işaretleri ile ayrılmış bilgiler yer alır (örn: "26.12.2026 - FLORMAR - ..." veya "26/12/2026 - FLORMAR - 01").
+     * Tarihten sonra gelen ilk iki tire arasındaki kelime mekan/marka adıdır (örn: "flormar").
+     * Bu kelimeyi oku (küçük harflerle, örn: "flormar"). Eğer sol üstte bu formatta veya mekan adı yoksa boş ("") bırak.
+   - "date" (Sol Üstteki Tarih):
+     * Sol üstte yer alan tarihi 'GG_AA_YYYY' formatında oku (örn: "26_12_2026"). Eğer tarih yoksa boş ("") bırak.
+   - "raw_top_left": Sol üstte yazan tüm metni olduğu gibi aynen aktar (örn: "26.12.2026 - FLORMAR - KADIKÖY").
+   - "raw_top_right": Sağ üstte yazan tüm metni olduğu gibi aynen aktar (örn: "REYON").
 
-YALNIZCA geçerli bir JSON array döndür:
-[
-  {"barcode": "RR01332710", "quantity": "34", "confidence": 98}
-]
+YALNIZCA geçerli bir JSON formatında döndür:
+{
+  "header": {
+    "area": "reyon",
+    "venue": "flormar",
+    "date": "26_12_2026",
+    "raw_top_left": "26.12.2026 - FLORMAR - KADIKÖY",
+    "raw_top_right": "REYON"
+  },
+  "entries": [
+    {"barcode": "RR01332710", "quantity": "34", "confidence": 98}
+  ]
+}
 ''';
 
     final requestBody = jsonEncode({
@@ -337,16 +372,19 @@ YALNIZCA geçerli bir JSON array döndür:
           if (text == null || text.trim().isEmpty) {
             return GeminiAnalysisResult(
               entries: [],
+              header: const SheetHeaderInfo(),
               remainingRequests: remainingAfter,
               totalLimit: ApiConfig.dailyRequestLimit,
             );
           }
 
-          final entries = _parseJsonOutput(text);
+          final parsed = _parseJsonOutput(text);
+          final entries = parsed.entries;
           entries.sort((a, b) => BarcodeComparator.compare(a.barcodeCode, b.barcodeCode));
 
           return GeminiAnalysisResult(
             entries: entries,
+            header: parsed.header,
             remainingRequests: remainingAfter,
             totalLimit: ApiConfig.dailyRequestLimit,
           );
@@ -385,6 +423,7 @@ YALNIZCA geçerli bir JSON array döndür:
     if (total == 0) {
       return GeminiAnalysisResult(
         entries: [],
+        header: const SheetHeaderInfo(),
         remainingRequests: await getRemainingRequests(),
         totalLimit: ApiConfig.dailyRequestLimit,
       );
@@ -403,6 +442,7 @@ YALNIZCA geçerli bir JSON array döndür:
           (a, b) => BarcodeComparator.compare(a.barcodeCode, b.barcodeCode));
       return GeminiAnalysisResult(
         entries: singleEntries,
+        header: res.header,
         remainingRequests: res.remainingRequests,
         totalLimit: res.totalLimit,
       );
@@ -417,6 +457,7 @@ YALNIZCA geçerli bir JSON array döndür:
     }
 
     final List<List<BarcodeEntry>?> results = List.filled(total, null);
+    final List<SheetHeaderInfo?> headers = List.filled(total, null);
     final List<String> errors = [];
     int completedCount = 0;
     int remainingAfter = remainingBefore;
@@ -459,6 +500,7 @@ YALNIZCA geçerli bir JSON array döndür:
               (a, b) => BarcodeComparator.compare(a.barcodeCode, b.barcodeCode));
 
           results[currentIndex] = pageEntries;
+          headers[currentIndex] = result.header;
         } catch (e) {
           errors.add('Sayfa $pageNumber hatası: $e');
         } finally {
@@ -515,14 +557,26 @@ YALNIZCA geçerli bir JSON array döndür:
       ));
     }
 
+    SheetHeaderInfo combinedHeader = const SheetHeaderInfo();
+    for (final h in headers) {
+      if (h != null && h.isNotEmpty) {
+        combinedHeader = combinedHeader.mergeWith(h);
+      }
+    }
+
     return GeminiAnalysisResult(
       entries: sortedWithCleanIds,
+      header: combinedHeader,
       remainingRequests: remainingAfter,
       totalLimit: ApiConfig.dailyRequestLimit,
     );
   }
 
-  static List<BarcodeEntry> _parseJsonOutput(String rawText) {
+  @visibleForTesting
+  static ParsedGeminiOutput parseJsonOutput(String rawText) =>
+      _parseJsonOutput(rawText);
+
+  static ParsedGeminiOutput _parseJsonOutput(String rawText) {
     var cleaned = rawText.trim();
     if (cleaned.startsWith('```json')) {
       cleaned = cleaned.substring(7);
@@ -534,54 +588,119 @@ YALNIZCA geçerli bir JSON array döndür:
     }
     cleaned = cleaned.trim();
 
-    final dynamic parsed = jsonDecode(cleaned);
-    final List<dynamic> list = parsed is List ? parsed : [];
+    try {
+      final dynamic parsed = jsonDecode(cleaned);
+      List<dynamic> list = [];
+      SheetHeaderInfo header = const SheetHeaderInfo();
 
-    final entries = <BarcodeEntry>[];
-    int idCounter = 0;
-
-    for (final item in list) {
-      if (item is Map<String, dynamic>) {
-        var barcode = (item['barcode'] ?? item['code'] ?? '').toString().trim();
-        // Tire veya bölü işaretlerini temizle (tire falan koymadan düz metin olarak al)
-        barcode = barcode.replaceAll(RegExp(r'[-/]'), '').trim();
-        var quantity = (item['quantity'] ?? item['adet'] ?? '').toString().trim();
-
-        // Strip any letters or words like "SON", keeping only pure digits
-        final digitsOnly = quantity.replaceAll(RegExp(r'[^0-9]'), '');
-        if (digitsOnly.isNotEmpty) {
-          quantity = digitsOnly;
+      if (parsed is List) {
+        list = parsed;
+      } else if (parsed is Map<String, dynamic>) {
+        Map<String, dynamic>? headerMap;
+        if (parsed['header'] is Map<String, dynamic>) {
+          headerMap = parsed['header'] as Map<String, dynamic>;
+        } else if (parsed['baslik'] is Map<String, dynamic>) {
+          headerMap = parsed['baslik'] as Map<String, dynamic>;
         }
 
-        // Parse confidence score (0 - 100)
-        double confidence = 98.0;
-        final rawConfidence = item['confidence'] ?? item['score'] ?? item['eminlik'];
-        if (rawConfidence != null) {
-          if (rawConfidence is num) {
-            confidence = rawConfidence.toDouble();
-          } else if (rawConfidence is String) {
-            final parsed = double.tryParse(rawConfidence.replaceAll('%', '').trim());
-            if (parsed != null) confidence = parsed;
-          }
-          // If returned as 0.0 - 1.0 (e.g. 0.92), normalize to 0 - 100 (92.0)
-          if (confidence > 0 && confidence <= 1.0) {
-            confidence = confidence * 100;
-          }
-        }
+        final area = headerMap?['area'] ??
+            headerMap?['alan'] ??
+            parsed['area'] ??
+            parsed['alan'];
+        final venue = headerMap?['venue'] ??
+            headerMap?['mekan'] ??
+            headerMap?['magaza'] ??
+            headerMap?['marka'] ??
+            parsed['venue'] ??
+            parsed['mekan'] ??
+            parsed['magaza'] ??
+            parsed['marka'];
+        final date = headerMap?['date'] ??
+            headerMap?['tarih'] ??
+            parsed['date'] ??
+            parsed['tarih'];
+        final rawTopLeft = headerMap?['raw_top_left'] ??
+            headerMap?['sol_ust'] ??
+            parsed['raw_top_left'] ??
+            parsed['sol_ust'];
+        final rawTopRight = headerMap?['raw_top_right'] ??
+            headerMap?['sag_ust'] ??
+            parsed['raw_top_right'] ??
+            parsed['sag_ust'];
 
-        if (barcode.isNotEmpty) {
-          entries.add(BarcodeEntry(
-            id: (idCounter++).toString(),
-            barcodeCode: barcode,
-            quantity: quantity,
-            isQuantityConfident: confidence >= 92.0,
-            confidence: confidence,
-          ));
+        header = SheetHeaderInfo.fromExtracted(
+          area: area?.toString(),
+          venue: venue?.toString(),
+          date: date?.toString(),
+          rawTopLeft: rawTopLeft?.toString(),
+          rawTopRight: rawTopRight?.toString(),
+        );
+
+        if (parsed['entries'] is List) {
+          list = parsed['entries'] as List<dynamic>;
+        } else if (parsed['items'] is List) {
+          list = parsed['items'] as List<dynamic>;
+        } else if (parsed['barkodlar'] is List) {
+          list = parsed['barkodlar'] as List<dynamic>;
+        } else if (parsed['data'] is List) {
+          list = parsed['data'] as List<dynamic>;
         }
       }
-    }
 
-    return entries;
+      final entries = <BarcodeEntry>[];
+      int idCounter = 0;
+
+      for (final item in list) {
+        if (item is Map<String, dynamic>) {
+          var barcode = (item['barcode'] ?? item['code'] ?? '').toString().trim();
+          // Tire veya bölü işaretlerini temizle (tire falan koymadan düz metin olarak al)
+          barcode = barcode.replaceAll(RegExp(r'[-/]'), '').trim();
+          var quantity = (item['quantity'] ?? item['adet'] ?? '').toString().trim();
+
+          // Strip any letters or words like "SON", keeping only pure digits
+          final digitsOnly = quantity.replaceAll(RegExp(r'[^0-9]'), '');
+          if (digitsOnly.isNotEmpty) {
+            quantity = digitsOnly;
+          }
+
+          // Parse confidence score (0 - 100)
+          double confidence = 98.0;
+          final rawConfidence =
+              item['confidence'] ?? item['score'] ?? item['eminlik'];
+          if (rawConfidence != null) {
+            if (rawConfidence is num) {
+              confidence = rawConfidence.toDouble();
+            } else if (rawConfidence is String) {
+              final parsed =
+                  double.tryParse(rawConfidence.replaceAll('%', '').trim());
+              if (parsed != null) confidence = parsed;
+            }
+            // If returned as 0.0 - 1.0 (e.g. 0.92), normalize to 0 - 100 (92.0)
+            if (confidence > 0 && confidence <= 1.0) {
+              confidence = confidence * 100;
+            }
+          }
+
+          if (barcode.isNotEmpty) {
+            entries.add(BarcodeEntry(
+              id: (idCounter++).toString(),
+              barcodeCode: barcode,
+              quantity: quantity,
+              isQuantityConfident: confidence >= 92.0,
+              confidence: confidence,
+            ));
+          }
+        }
+      }
+
+      return ParsedGeminiOutput(
+        header: header,
+        entries: entries,
+      );
+    } catch (e) {
+      debugPrint('JSON parse hatası: $e');
+      return const ParsedGeminiOutput();
+    }
   }
 
   // ── Yardımcı fonksiyon ─────────────────────────────────────────────────────
