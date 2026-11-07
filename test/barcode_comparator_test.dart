@@ -36,5 +36,29 @@ void main() {
       expect(barcodes[2], '');
       expect(barcodes[3], '');
     });
+
+    test('Sorts entries by page first, then barcode ascending within each page', () {
+      final entries = [
+        const BarcodeEntry(id: '1', barcodeCode: 'RR-0020/2000', quantity: '5', pageIndex: 2),
+        const BarcodeEntry(id: '2', barcodeCode: 'RR-0133/2710', quantity: '10', pageIndex: 1),
+        const BarcodeEntry(id: '3', barcodeCode: 'AA-0001/0001', quantity: '8', pageIndex: 2),
+        const BarcodeEntry(id: '4', barcodeCode: 'RR-0010/1000', quantity: '12', pageIndex: 1),
+      ];
+
+      entries.sort((a, b) {
+        final pageA = a.pageIndex ?? 1;
+        final pageB = b.pageIndex ?? 1;
+        final pageCmp = pageA.compareTo(pageB);
+        if (pageCmp != 0) return pageCmp;
+        return BarcodeComparator.compare(a.barcodeCode, b.barcodeCode);
+      });
+
+      expect(entries.map((e) => '${e.pageIndex}:${e.barcodeCode}').toList(), [
+        '1:RR-0010/1000',
+        '1:RR-0133/2710',
+        '2:AA-0001/0001',
+        '2:RR-0020/2000',
+      ]);
+    });
   });
 }

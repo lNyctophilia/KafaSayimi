@@ -245,7 +245,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   },
                   icon: const Icon(Icons.bolt_rounded),
                   label: Text(
-                    'Sayımı Başlat ($count Sayfa) - A-Z Sırala',
+                    'Sayımı Başlat ($count Sayfa)',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   style: FilledButton.styleFrom(
@@ -950,7 +950,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           const SizedBox(height: 6),
           const Center(
             child: Text(
-              'Tüm sayfalar taranıp barkod adına göre A-Z sıralanır',
+              'Sayfalar sırayla listelenir, her sayfa kendi içinde barkoda göre artan sıralanır',
               style: TextStyle(
                 fontSize: 11,
                 color: AppColors.textSecondary,
@@ -1022,7 +1022,7 @@ class _ProcessingCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             const Text(
-              'Barkodlar otomatik olarak artan sırada (A-Z) dizilecektir.',
+              'Kayıtlar sayfa sırasına göre ve her sayfa kendi içinde artan sıralanır.',
               style: TextStyle(
                 fontSize: 11.5,
                 color: AppColors.textHint,

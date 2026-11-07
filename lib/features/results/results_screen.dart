@@ -28,47 +28,6 @@ class ResultsScreen extends ConsumerWidget {
           tooltip: 'Geri',
         ),
         actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.sort_rounded),
-            tooltip: 'Sırala',
-            onSelected: (value) {
-              if (value == 'asc') notifier.sortAscending();
-              if (value == 'desc') notifier.sortDescending();
-              if (value == 'page') notifier.sortByPage();
-            },
-            itemBuilder: (ctx) => const [
-              PopupMenuItem(
-                value: 'asc',
-                child: Row(
-                  children: [
-                    Icon(Icons.arrow_upward_rounded, size: 18),
-                    SizedBox(width: 8),
-                    Text('Barkod (A-Z) Artan'),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'desc',
-                child: Row(
-                  children: [
-                    Icon(Icons.arrow_downward_rounded, size: 18),
-                    SizedBox(width: 8),
-                    Text('Barkod (Z-A) Azalan'),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'page',
-                child: Row(
-                  children: [
-                    Icon(Icons.auto_stories_rounded, size: 18),
-                    SizedBox(width: 8),
-                    Text('Sayfa Sırasına Göre'),
-                  ],
-                ),
-              ),
-            ],
-          ),
           IconButton(
             icon: const Icon(Icons.add_rounded),
             onPressed: () => notifier.addEntry(),

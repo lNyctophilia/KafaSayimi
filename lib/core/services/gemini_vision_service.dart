@@ -451,10 +451,12 @@ YALNIZCA geçerli bir JSON array döndür:
 
           remainingAfter = result.remainingRequests;
 
-          // Her kayda ait olduğu sayfa numarasını ekle
+          // Her kayda ait olduğu sayfa numarasını ekle ve sayfa içi barkoda göre artan sırala
           final pageEntries = result.entries
               .map((e) => e.copyWith(pageIndex: pageNumber))
               .toList();
+          pageEntries.sort(
+              (a, b) => BarcodeComparator.compare(a.barcodeCode, b.barcodeCode));
 
           results[currentIndex] = pageEntries;
         } catch (e) {
@@ -473,10 +475,14 @@ YALNIZCA geçerli bir JSON array döndür:
     final workerCount = total < maxConcurrency ? total : maxConcurrency;
     await Future.wait(List.generate(workerCount, (_) => worker()));
 
-    // Tüm sayfaların sonuçlarını birleştir
+    // Tüm sayfaların sonuçlarını birleştir:
+    // Önce Sayfa 1, sonra Sayfa 2, Sayfa 3... şeklinde; her sayfa kendi içinde barkoda göre artan sırada
     final allEntries = <BarcodeEntry>[];
-    for (final list in results) {
+    for (int i = 0; i < results.length; i++) {
+      final list = results[i];
       if (list != null) {
+        list.sort(
+            (a, b) => BarcodeComparator.compare(a.barcodeCode, b.barcodeCode));
         allEntries.addAll(list);
       }
     }
@@ -486,9 +492,14 @@ YALNIZCA geçerli bir JSON array döndür:
           'Sayfalar taranırken hata oluştu:\n${errors.join("\n")}');
     }
 
-    // Barkod adına göre artan (A-Z, 0-9) sırada sırala
-    allEntries.sort(
-        (a, b) => BarcodeComparator.compare(a.barcodeCode, b.barcodeCode));
+    // Sayfa sırasına (Sayfa 1, 2, 3...) ve sayfa içinde barkoda göre artan sıraya göre sırala
+    allEntries.sort((a, b) {
+      final pageA = a.pageIndex ?? 1;
+      final pageB = b.pageIndex ?? 1;
+      final pageCmp = pageA.compareTo(pageB);
+      if (pageCmp != 0) return pageCmp;
+      return BarcodeComparator.compare(a.barcodeCode, b.barcodeCode);
+    });
 
     // Sıralı liste için temiz sıralı ID'ler ata
     final sortedWithCleanIds = <BarcodeEntry>[];
